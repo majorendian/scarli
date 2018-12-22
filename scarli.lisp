@@ -27,7 +27,10 @@
            object-collide
            object-is-colliding
            object-move
+           object-remove
+           object-scene
            text
+           progressive-text
            script
            script-update
            script-input
@@ -51,7 +54,7 @@
            normalize-2d-vector
            add-obj-to-scene
            add-input-handler
-           *main-scene*
+           *persistent-scene*
            main
            ))
 
@@ -73,9 +76,19 @@
   ((name :accessor scene-name :initarg :name)
    (layers :accessor scene-layers :initarg :layers :initform (list))))
 
+
+
 (defclass layer ()
   ((name :accessor layer-name :initarg :name)
    (objects :accessor layer-objects :initarg :objects :initform (list))))
+
+;list of objects that always process regardless of scene
+(defparameter *persistent-scene*
+  (make-instance 'scene
+                 :layers (list
+                           (make-instance 'layer :name "bottom")
+                           (make-instance 'layer :name "middle")
+                           (make-instance 'layer :name "top"))))
 
 ;============
 ; Rectangle
@@ -99,7 +112,7 @@
    (ready :accessor script-ready :initarg :ready :initform (lambda (self)
                                                              (declare (ignore self))))
    (update :accessor script-update :initarg :update :initform (lambda (self dt)
-                                                                (declare (ignore self) (ignore parent) (ignore dt))))
+                                                                (declare (ignore self) (ignore dt))))
    (input :accessor script-input :initarg :input :initform (lambda (self scancode pressed)
                                                              (declare (ignore self) (ignore scancode) (ignore pressed))))
    (draw :accessor script-draw :initarg :draw :initform (lambda (self dst_surf)
@@ -116,6 +129,7 @@
    (y :accessor object-y :initarg :y :initform 0)
    (width :accessor object-width :initarg :w :initform 0)
    (height :accessor object-height :initarg :h :initform 0)
+   (scene :accessor object-scene :initform nil)
    (collision-rect :accessor object-collision-rect :initarg :collision-rect :initform (make-instance 'rectangle))
    (collision-enabled :accessor object-collision-enabled :initarg :collision-enabled :initform nil)
    (on-collide :accessor object-on-collide :initarg :on-collide :initform (lambda (self collider)
@@ -155,20 +169,56 @@
         (setf (object-is-colliding obj_2) is_collision)
         is_collision))))
 
+(defmethod object-remove ((obj object))
+  (loop for a_layer in (scene-layers (object-scene obj))
+        do (loop for obj_to_remove in (layer-objects a_layer)
+                 when (eq obj obj_to_remove)
+                 do (progn
+                      (format t "removing object ~S~%" obj)
+                      (setf (layer-objects a_layer) (remove obj (layer-objects a_layer)))
+                      (return)))))
+
 ;=================
 ; Text class
 ;=================
 (defclass text (object)
   ((text :accessor text-text :initarg :text :initform "PLACEHOLDER_TEXT")
    (draw :accessor object-draw :initform (lambda (self dst_surf)
-                                           (let ((text_surf (sdl2-ttf:render-text-solid *default-font*
-                                                                                        (text-text self)
-                                                                                        255 255 255 0)))
-                                             (sdl2:blit-surface text_surf nil
-                                                                dst_surf
-                                                                (sdl2:make-rect (object-x self) (object-y self)
-                                                                                (sdl2:surface-width text_surf) (sdl2:surface-height text_surf)))
-                                             (sdl2:free-surface text_surf))))))
+                                           (when (> (length (text-text self)) 0) 
+                                             (let ((text_surf (sdl2-ttf:render-text-solid *default-font*
+                                                                                          (text-text self)
+                                                                                          255 255 255 0)))
+                                               (sdl2:blit-surface text_surf nil
+                                                                  dst_surf
+                                                                  (sdl2:make-rect (object-x self) (object-y self)
+                                                                                  (sdl2:surface-width text_surf) (sdl2:surface-height text_surf)))
+                                               (sdl2:free-surface text_surf)))))))
+
+(defclass progressive-text (text)
+  ((text-to-render :accessor text-text-to-render :initarg :text :initform "PLACEHOLDER_TEXT")
+   (current-text :accessor text-text :initform "")
+   (init :accessor object-init :initform
+         (lambda (self)
+           (object-set self 'txt_index 1)
+           (object-set self 'accum_delta 0)))
+   (update :accessor object-update :initform
+           (lambda (self dt)
+             (object-set self 'accum_delta (+ (object-get self 'accum_delta) dt))
+             (when (> (object-get self 'accum_delta) 0.2)
+               (setf (text-text self) (if (<= (object-get self 'txt_index) (length (text-text-to-render self)))
+                                          (subseq (text-text-to-render self) 0 (object-get self 'txt_index))
+                                          (text-text-to-render self)))
+               (object-set self 'accum_delta 0)
+               (object-set self 'txt_index (+ 1 (object-get self 'txt_index))))))
+   (input :accessor object-input :initform
+          (lambda (self scancode pressed)
+            (when 
+              (and (string= (text-text-to-render self) (text-text self))
+                   (sdl2:scancode= scancode :scancode-escape)
+                   (not pressed))
+              (format t "Here in text :input~%")
+              (object-remove self))))
+   ))
 
 ;=================
 ; Drawable class
@@ -241,6 +291,7 @@
                      when (string-equal (layer-name l) layer_name)
                      do (return l))))
     ;initialize object before pushing it into the layer in the scene
+    (setf (object-scene obj) sc)
     (funcall (object-init obj) obj)
     (push obj (layer-objects layer))
     ))
@@ -280,7 +331,6 @@
 
 (defun add-input-handler (obj)
   (push obj *input-handlers*))
-
 
 (defun handle-key-down (scancode)
   (loop for obj in *input-handlers*
@@ -331,6 +381,9 @@
              ;update logic goes here, the code above should delay the appropriate ammount of time
              (sdl2:fill-rect main_surface nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
 
+             ;update and draw the persitent scene
+             (update-and-draw-scene main_surface *persistent-scene* delta)
+             ;update and draw the game main scene
              (update-and-draw-scene main_surface sc delta)
              
              (sdl2:update-window win)
@@ -340,7 +393,11 @@
                (setf fps 0)
                (setf last_ticks (sdl2:get-ticks))
                )))
-          (:quit () t)
+          (:quit () (progn
+                      (sdl2-ttf:close-font *default-font*)
+                      (sdl2-ttf:quit)
+                      (sdl2-image:quit)
+                      t))
           (:keydown (:keysym keysym)
            (let ((scancode (sdl2:scancode-value keysym)))
              (handle-key-down scancode)))
