@@ -204,12 +204,15 @@
    (update :accessor object-update :initform
            (lambda (self dt)
              (object-set self 'accum_delta (+ (object-get self 'accum_delta) dt))
-             (when (> (object-get self 'accum_delta) 0.2)
+             (when (> (object-get self 'accum_delta) 0.05)
                (setf (text-text self) (if (<= (object-get self 'txt_index) (length (text-text-to-render self)))
                                           (subseq (text-text-to-render self) 0 (object-get self 'txt_index))
                                           (text-text-to-render self)))
                (object-set self 'accum_delta 0)
-               (object-set self 'txt_index (+ 1 (object-get self 'txt_index))))))
+               (object-set self 'txt_index (+ 1 (object-get self 'txt_index)))
+               (when (= (length (text-text-to-render self)) (length (text-text self)))
+                 ;text displaying ends here
+                 ))))
    (input :accessor object-input :initform
           (lambda (self scancode pressed)
             (when 
