@@ -44,6 +44,9 @@
            drawable-set-frame
            drawable-set-anim-index
            drawable-get-frame
+           make-tiles
+           map-from-size
+           map-set-tile
            rectangle
            rect-x
            rect-y
@@ -243,6 +246,65 @@
                               dst_surf (sdl2:make-rect (object-x self) (object-y self)
                                                        (object-width self) (object-height self)))))))
 
+(defparameter *image-cache* (make-hash-table :test 'equal))
+
+(defclass tile (drawable)
+  ((init :accessor object-init :initarg :init :initform
+         (lambda (self)
+           ;make sure image loads only once per tile. the image is supposed to be a tileset
+           (if (not (gethash (drawable-image-path self) *image-cache*))
+               (progn
+                 (setf (drawable-image self) (sdl2-image:load-image (drawable-image-path self)))
+                 (setf (gethash (drawable-image-path self) *image-cache*) (drawable-image self)))
+               (progn
+                 (setf (drawable-image self) (gethash (drawable-image-path self) *image-cache*))
+                ))))))
+
+(defun make-tiles (sc layer_str tile_size tile_sheet_path tile_map)
+  (declare (string layer_str) (string tile_sheet_path) (list tile_map) (number tile_size))
+  (loop for row in tile_map
+        for ri = 0 then (+ ri 1)
+        do (loop for col in row
+                 for ci = 0 then (+ ci 1)
+                 do (progn
+                      (add-obj-to-scene
+                        sc
+                        layer_str
+                        (make-instance 'tile
+                                       :x (* ci tile_size)
+                                       :y (* ri tile_size)
+                                       :image-path tile_sheet_path
+                                       :image-rect (make-instance 
+                                                     'rectangle 
+                                                     :x (* (aref col 0) tile_size) 
+                                                     :y (* (aref col 1) tile_size) 
+                                                     :w tile_size :h tile_size)))
+                      ))))
+
+(defun map-from-size (width height tile_size vec)
+  (let ((num_rows (/ height tile_size))
+        (num_cols (/ width tile_size))
+        (result_list (list)))
+    (loop for ri = 0 then (+ 1 ri)
+          while (< ri num_rows)
+          do (let ((tmp_list (list))) 
+               (loop for ci = 0 then (+ 1 ci)
+                   while (< ci num_cols)
+                   do (push vec tmp_list))
+               (push tmp_list result_list))
+          )
+    result_list))
+
+(defun map-set-tile (amap x y vec)
+  (if (and
+        (> (length (nth 0 amap)) x)
+        (> (length amap) y))
+      (progn
+        (setf (nth x (nth y amap)) vec))
+      (progn
+        (format t "Coordinates too big~%")
+        )
+      ))
 
 (defmethod drawable-set-frame ((obj drawable) (frame number))
   (setf (rect-x (drawable-image-rect obj)) (* frame (rect-w (drawable-image-rect obj)))))
