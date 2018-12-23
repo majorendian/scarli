@@ -167,10 +167,15 @@
                            (make-instance 'scarli:layer :name "bottom")
                            (make-instance 'scarli:layer :name "middle")
                            (make-instance 'scarli:layer :name "top"))))
+(defparameter *camera* (make-instance 'camera
+                                      :x 0
+                                      :y 0
+                                      :w *width*
+                                      :h *height*))
 (add-input-handler *testobj*)
 (add-obj-to-scene *testscene* "middle" *testobj*)
 (add-obj-to-scene *testscene* "middle" *square*)
 (add-obj-to-scene *testscene* "middle" *square2*)
 (add-obj-to-scene *testscene* "top" *instruction-text*)
 (add-obj-to-scene *testscene* "top" *instruction-text-2*)
-(main *testscene* *width* *height*)
+(main *testscene* *camera* *width* *height*)

@@ -180,8 +180,7 @@
 
 (defmethod object-input ((self object) scancode pressed))
 
-(defmethod object-on-collide ((self object) (obj_b object))
-  (format t "Collision detected between ~a and ~a" (type-of self) (type-of obj_b)))
+(defmethod object-on-collide ((self object) (obj_b object)))
 
 (defmethod object-set ((obj object) (sym symbol) (val t))
   (setf (gethash sym (object-attributes obj)) val))
@@ -442,7 +441,8 @@
                             do (progn
                                  (funcall (script-update a_script) obj dt)
                                  (funcall (script-draw a_script) obj dst_surf)))
-                      (check-collision sc obj)
+                      (when (object-collision-enabled obj)
+                        (check-collision sc obj))
                       (if (object-custom-draw obj)
                           (funcall (object-custom-draw obj) obj dst_surf)
                           (object-draw obj dst_surf))
@@ -507,11 +507,13 @@
                  (sdl2:delay (round (- target_ticks current_ticks)))
                  ;update current_ticks
                  (setf current_ticks (sdl2:get-ticks))))
+             
              ;update logic goes here, the code above should delay the appropriate ammount of time
              (sdl2:fill-rect main_surface nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
+             (sdl2:fill-rect sec_surf nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
 
              ;update and draw the persitent scene
-             (update-and-draw-scene main_surface *persistent-scene* delta)
+             (update-and-draw-scene sec_surf *persistent-scene* delta)
              ;update and draw the game main scene
              (update-and-draw-scene sec_surf sc delta)
              (when (camera-parent cam)

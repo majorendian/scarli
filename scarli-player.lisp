@@ -79,11 +79,11 @@
                                (cond
                                  ;Y collision
                                  ;from top
-                                 ((> (rect-y (object-collision-rect collider)) (- (+ (rect-h (object-collision-rect self)) (rect-y (object-collision-rect self))) 4))
+                                 ((> (rect-y (object-collision-rect collider)) (- (+ (rect-h (object-collision-rect self)) (rect-y (object-collision-rect self))) 12))
                                   (progn
                                     (setf (object-y self) (- (object-y collider) (+ (rect-h (object-collision-rect self)) (- (object-height self) (rect-h (object-collision-rect self)) ))))))
                                  ;from bottom
-                                 ((< (- (+ (rect-y (object-collision-rect collider)) (rect-h (object-collision-rect collider))) 4) (rect-y (object-collision-rect self)))
+                                 ((< (- (+ (rect-y (object-collision-rect collider)) (rect-h (object-collision-rect collider))) 12) (rect-y (object-collision-rect self)))
                                   (progn
                                     (setf (object-y self) (+ (object-y collider) (rect-h (object-collision-rect self))))))
                                  ;X collision
