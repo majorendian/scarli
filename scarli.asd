@@ -9,4 +9,5 @@
   :version "0.1"
   :author "Ernest Deák"
   :license "MIT License"
-  :components ((:file "scarli")))
+  :components ((:file "scarli")
+               (:file "scarli-player" :depends-on ("scarli"))))

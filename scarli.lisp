@@ -66,7 +66,7 @@
 
 (defparameter *default-font-path* "kongtext.ttf")
 (defparameter *default-font* nil)
-(defparameter *MAX_FPS* 60)
+(defparameter *MAX_FPS* 30)
 
 ;list of objects that process input
 (defparameter *input-handlers* (list))
@@ -135,23 +135,45 @@
    (scene :accessor object-scene :initform nil)
    (collision-rect :accessor object-collision-rect :initarg :collision-rect :initform (make-instance 'rectangle))
    (collision-enabled :accessor object-collision-enabled :initarg :collision-enabled :initform nil)
-   (on-collide :accessor object-on-collide :initarg :on-collide :initform (lambda (self collider)
+   (on-collide :accessor object-custom-on-collide :initarg :on-collide :initform (lambda (self collider)
                                                                             (declare (ignore self) (ignore collider))))
    (is-colliding :accessor object-is-colliding :initform nil)
    (z-index :accessor object-z-index :initarg :z-index :initform 0)
    (attributes :accessor object-attributes :initform (make-hash-table))
    (scripts :accessor object-scripts :initarg :scripts :initform (list))
-   (init :accessor object-init :initform (lambda (self)
-                                           (declare (ignore self))))
-   (ready :accessor object-ready :initarg :ready :initform (lambda (self)
-                                                             (declare (ignore self))))
-   (update :accessor object-update :initarg :update :initform (lambda (self dt)
-                                                                (declare (ignore self) (ignore dt))))
-   (draw :accessor object-draw :initarg :draw :initform (lambda (self dst_surf)
-                                                          (declare (ignore self) (ignore dst_surf))))
-   (input :accessor object-input :initarg :input :initform (lambda (self scancode pressed)
-                                                             (declare (ignore self) (ignore scancode) (ignore pressed))))))
+   (ready :accessor object-custom-ready :initarg :ready :initform nil)
+   (update :accessor object-custom-update :initarg :update :initform nil)
+   (draw :accessor object-custom-draw :initarg :draw :initform nil)
+   (input :accessor object-custom-input :initarg :input :initform nil)))
 
+(defgeneric object-init (obj)
+  (:documentation "Initializes object before it is added to the scene"))
+
+(defgeneric object-draw (obj dst_surf)
+  (:documentation "Draws OBJ onto DST_SURF which is an SDL2 surface object"))
+
+(defgeneric object-update (obj dt)
+  (:documentation "Updates OBJ and passes delta time DT as argument"))
+
+(defgeneric object-ready (obj)
+  (:documentation "Prepares the object after SDL initialization"))
+
+(defgeneric object-input (obj scancode pressed)
+  (:documentation "Fires when added into *input-handlers* this function processes key presses"))
+
+(defgeneric object-on-collide (self obj_b)
+  (:documentation "Fires when 2 objects have an intersecting collision rectangle"))
+
+(defmethod object-init ((obj object)))
+
+(defmethod object-update ((self object) (dt float)))
+
+(defmethod object-ready ((self object)))
+
+(defmethod object-input ((self object) scancode pressed))
+
+(defmethod object-on-collide ((self object) (obj_b object))
+  (format t "Collision detected between ~a and ~a" (type-of self) (type-of obj_b)))
 
 (defmethod object-set ((obj object) (sym symbol) (val t))
   (setf (gethash sym (object-attributes obj)) val))
@@ -185,46 +207,39 @@
 ; Text class
 ;=================
 (defclass text (object)
-  ((text :accessor text-text :initarg :text :initform "PLACEHOLDER_TEXT")
-   (draw :accessor object-draw :initform (lambda (self dst_surf)
-                                           (when (> (length (text-text self)) 0) 
-                                             (let ((text_surf (sdl2-ttf:render-text-solid *default-font*
-                                                                                          (text-text self)
-                                                                                          255 255 255 0)))
-                                               (sdl2:blit-surface text_surf nil
-                                                                  dst_surf
-                                                                  (sdl2:make-rect (object-x self) (object-y self)
-                                                                                  (sdl2:surface-width text_surf) (sdl2:surface-height text_surf)))
-                                               ))))))
+  ((text :accessor text-text :initarg :text :initform "PLACEHOLDER_TEXT")))
+
+(defmethod object-draw ((obj text) dst_surf)
+  (when (> (length (text-text obj)) 0) 
+    (let ((text_surf (sdl2-ttf:render-text-solid *default-font*
+                                                 (text-text obj)
+                                                 255 255 255 0)))
+      (sdl2:blit-surface text_surf nil
+                         dst_surf
+                         (sdl2:make-rect (object-x obj) (object-y obj)
+                                         (sdl2:surface-width text_surf) (sdl2:surface-height text_surf)))
+      )))
 
 (defclass progressive-text (text)
   ((text-to-render :accessor text-text-to-render :initarg :text :initform "PLACEHOLDER_TEXT")
    (current-text :accessor text-text :initform "")
-   (init :accessor object-init :initform
-         (lambda (self)
-           (object-set self 'txt_index 1)
-           (object-set self 'accum_delta 0)))
-   (update :accessor object-update :initform
-           (lambda (self dt)
-             (object-set self 'accum_delta (+ (object-get self 'accum_delta) dt))
-             (when (> (object-get self 'accum_delta) 0.05)
-               (setf (text-text self) (if (<= (object-get self 'txt_index) (length (text-text-to-render self)))
-                                          (subseq (text-text-to-render self) 0 (object-get self 'txt_index))
-                                          (text-text-to-render self)))
-               (object-set self 'accum_delta 0)
-               (object-set self 'txt_index (+ 1 (object-get self 'txt_index)))
-               (when (= (length (text-text-to-render self)) (length (text-text self)))
-                 ;text displaying ends here
-                 ))))
-   (input :accessor object-input :initform
-          (lambda (self scancode pressed)
-            (when 
-              (and (= (length (text-text-to-render self)) (length (text-text self)))
-                   (sdl2:scancode= scancode :scancode-escape)
-                   (not pressed))
-              (format t "Here in text :input~%")
-              (object-remove self))))
    ))
+
+(defmethod object-init ((self progressive-text))
+  (object-set self 'txt_index 1)
+  (object-set self 'accum_delta 0))
+
+(defmethod object-update ((self progressive-text) (dt float))
+  (object-set self 'accum_delta (+ (object-get self 'accum_delta) dt))
+  (when (> (object-get self 'accum_delta) 0.05)
+    (setf (text-text self) (if (<= (object-get self 'txt_index) (length (text-text-to-render self)))
+                               (subseq (text-text-to-render self) 0 (object-get self 'txt_index))
+                               (text-text-to-render self)))
+    (object-set self 'accum_delta 0)
+    (object-set self 'txt_index (+ 1 (object-get self 'txt_index)))
+    (when (= (length (text-text-to-render self)) (length (text-text self)))
+      ;text displaying ends here
+      )))
 
 ;=================
 ; Drawable class
@@ -237,28 +252,30 @@
    (image-rect :accessor drawable-image-rect :initarg :image-rect :initform (make-instance 'rectangle))
    (anim-index :accessor drawable-anim-index :initarg :anim-index :initform 0)
    (delta-accum :accessor drawable-delta-accum :initform 0)
-   (init :accessor object-init :initarg :init :initform 
-         (lambda (self)
-           (setf (drawable-image self) (sdl2-image:load-image (drawable-image-path self)))))
-   (draw :accessor object-draw :initarg :draw :initform
-         (lambda (self dst_surf)
-           (sdl2:blit-surface (drawable-image self) (rect-to-sdl2-rect (drawable-image-rect self))
-                              dst_surf (sdl2:make-rect (object-x self) (object-y self)
-                                                       (object-width self) (object-height self)))))))
+   ))
 
 (defparameter *image-cache* (make-hash-table :test 'equal))
 
+(defmethod object-init ((obj drawable))
+  ;make sure image loads only once per drawable. the image is supposed to be a tileset
+  (if (not (gethash (drawable-image-path obj) *image-cache*))
+      (progn
+        (setf (drawable-image obj) (sdl2-image:load-image (drawable-image-path obj)))
+        (setf (gethash (drawable-image-path obj) *image-cache*) (drawable-image obj)))
+      (progn
+        (setf (drawable-image obj) (gethash (drawable-image-path obj) *image-cache*))
+        )))
+
+(defmethod object-on-collide ((self drawable) (obj_b object)))
+(defmethod object-on-collide ((self object) (obj_b drawable)))
+
+(defmethod object-draw ((dr drawable) dst_surf)
+  (sdl2:blit-surface (drawable-image dr) (rect-to-sdl2-rect (drawable-image-rect dr))
+                     dst_surf (sdl2:make-rect (object-x dr) (object-y dr)
+                                              (object-width dr) (object-height dr))) )
+
 (defclass tile (drawable)
-  ((init :accessor object-init :initarg :init :initform
-         (lambda (self)
-           ;make sure image loads only once per tile. the image is supposed to be a tileset
-           (if (not (gethash (drawable-image-path self) *image-cache*))
-               (progn
-                 (setf (drawable-image self) (sdl2-image:load-image (drawable-image-path self)))
-                 (setf (gethash (drawable-image-path self) *image-cache*) (drawable-image self)))
-               (progn
-                 (setf (drawable-image self) (gethash (drawable-image-path self) *image-cache*))
-                ))))))
+  ())
 
 (defun make-tiles (sc layer_str tile_size tile_sheet_path tile_map)
   (declare (string layer_str) (string tile_sheet_path) (list tile_map) (number tile_size))
@@ -357,7 +374,7 @@
                      do (return l))))
     ;initialize object before pushing it into the layer in the scene
     (setf (object-scene obj) sc)
-    (funcall (object-init obj) obj)
+    (object-init obj)
     (push obj (layer-objects layer))
     ))
 
@@ -365,7 +382,9 @@
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (layer-objects a_layer)
                  do (progn
-                      (funcall (object-ready obj) obj)
+                      (if (object-custom-ready obj)
+                          (funcall (object-custom-ready obj) obj)
+                          (object-ready obj))
                       (loop for a_script in (object-scripts obj)
                             do (funcall (script-ready a_script) obj))))))
 
@@ -376,7 +395,7 @@
                       (if (eq obj obj_b)
                           nil
                           (when (object-collide obj obj_b)
-                            (funcall (object-on-collide obj) obj obj_b)
+                            (object-on-collide  obj obj_b)
                             (loop for a_script in (object-scripts obj)
                                   do (funcall (script-on-collide a_script) obj obj_b))))))))
 
@@ -386,13 +405,18 @@
                                   (lambda (a b)
                                     (< (object-z-index a) (object-z-index b))))
                  do (progn
-                      (funcall (object-update obj) obj dt)
+                      (if (object-custom-update obj)
+                          (funcall (object-custom-update obj) obj dt)
+                          (object-update obj dt))
                       (loop for a_script in (object-scripts obj)
                             do (progn
                                  (funcall (script-update a_script) obj dt)
                                  (funcall (script-draw a_script) obj dst_surf)))
                       (check-collision sc obj)
-                      (funcall (object-draw obj) obj dst_surf)))))
+                      (if (object-custom-draw obj)
+                          (funcall (object-custom-draw obj) obj dst_surf)
+                          (object-draw obj dst_surf))
+                      ))))
 
 (defun add-input-handler (obj)
   (push obj *input-handlers*))
@@ -403,14 +427,18 @@
 (defun handle-key-down (scancode)
   (loop for obj in *input-handlers*
         do (progn
-             (funcall (object-input obj) obj scancode t)
+             (if (object-custom-input obj)
+                 (funcall (object-custom-input obj) obj scancode t)
+                 (object-input obj scancode t))
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode t)))))
 
 (defun handle-key-up (scancode)
   (loop for obj in *input-handlers*
         do (progn
-             (funcall (object-input obj) obj scancode nil)
+             (if (object-custom-input obj)
+                 (funcall (object-custom-input obj) obj scancode nil)
+                 (object-input obj scancode nil))
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
 
@@ -457,7 +485,7 @@
              (sdl2:update-window win)
              ;update fps counter every second along with last ticks
              (when (>= (- current_ticks last_ticks) 1000)
-               ;(format t "FPS:~S~%" fps)
+               (format t "FPS:~S~%" fps)
                (setf fps 0)
                (setf last_ticks (sdl2:get-ticks))
                )))
