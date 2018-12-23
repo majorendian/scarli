@@ -55,6 +55,14 @@
            add-2d-vectors
            sub-2d-vectors
            normalize-2d-vector
+           camera
+           camera-x
+           camera-y
+           camera-w
+           camera-h
+           camera-surface
+           camera-parent
+           camera-main-surface
            add-obj-to-scene
            add-input-handler
            *persistent-scene*
@@ -346,6 +354,28 @@
     (drawable-set-frame obj 0)))
 
 ;==================================
+; Camera
+;==================================
+
+(defclass camera ()
+  ((x :accessor camera-x :initarg :x :initform 0)
+   (y :accessor camera-y :initarg :y :initform 0)
+   (w :accessor camera-w :initarg :w :initform 0)
+   (h :accessor camera-h :initarg :h :initform 0)
+   (surface :accessor camera-surface :initarg :surface :initform nil)
+   (parent :accessor camera-parent :initarg :parent :initform nil)
+   (main-surface :accessor camera-main-surface :initform nil)
+   ))
+
+(defmethod camera-init ((c camera) dst_surf)
+  (setf (camera-surface c) (sdl2:create-rgb-surface (camera-w c) (camera-h c) 32))
+  (setf (camera-main-surface c) dst_surf))
+
+(defmethod camera-center ((c camera))
+  (setf (camera-x c) (+ (* -1 (object-x (camera-parent c))) (/ (camera-w c) 2) ) )
+  (setf (camera-y c) (+ (* -1 (object-y (camera-parent c))) (/ (camera-h c) 2))))
+
+;==================================
 ; Utility functions
 ;==================================
 
@@ -442,20 +472,23 @@
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
 
-(defun main (sc width height)
+(defun main (sc cam width height)
+  (declare (scene sc) (camera cam ) (number width ) (number height ))
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
   (sdl2:with-init (:everything)
     (sdl2-image:init (list :png))
     (sdl2-ttf:init)
-    (setf *default-font* (sdl2-ttf:open-font (truename *default-font-path*) 16))
+    (setf *default-font* (sdl2-ttf:open-font (truename *default-font-path*) 8))
     (sdl2:with-window (win :title "Scarli" :flags (list :shown) :w width :h height)
       ;setup main window surface and variables for calculating delta and limmiting fps
       (let ((main_surface (sdl2:get-window-surface win))
             (time_seconds (/ (sdl2:get-ticks) 1000.0))
             (max_frame_ticks (/ 1000.0 *MAX_FPS*))
             (fps 0)
-            (last_ticks (sdl2:get-ticks)))
+            (last_ticks (sdl2:get-ticks))
+            (sec_surf (sdl2:create-rgb-surface 1024 720 32)))
+        (camera-init cam main_surface)
         (ready-all-objects sc)
         (sdl2:with-event-loop (:method :poll)
           (:idle ()
@@ -480,8 +513,13 @@
              ;update and draw the persitent scene
              (update-and-draw-scene main_surface *persistent-scene* delta)
              ;update and draw the game main scene
-             (update-and-draw-scene main_surface sc delta)
+             (update-and-draw-scene sec_surf sc delta)
+             (when (camera-parent cam)
+               (camera-center cam))
              
+             (sdl2:blit-surface sec_surf nil
+                                main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
+                                                             (camera-w cam) (camera-h cam)))
              (sdl2:update-window win)
              ;update fps counter every second along with last ticks
              (when (>= (- current_ticks last_ticks) 1000)
