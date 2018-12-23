@@ -195,7 +195,7 @@
                                                                   dst_surf
                                                                   (sdl2:make-rect (object-x self) (object-y self)
                                                                                   (sdl2:surface-width text_surf) (sdl2:surface-height text_surf)))
-                                               (sdl2:free-surface text_surf)))))))
+                                               ))))))
 
 (defclass progressive-text (text)
   ((text-to-render :accessor text-text-to-render :initarg :text :initform "PLACEHOLDER_TEXT")
@@ -219,7 +219,7 @@
    (input :accessor object-input :initform
           (lambda (self scancode pressed)
             (when 
-              (and (string= (text-text-to-render self) (text-text self))
+              (and (= (length (text-text-to-render self)) (length (text-text self)))
                    (sdl2:scancode= scancode :scancode-escape)
                    (not pressed))
               (format t "Here in text :input~%")
@@ -396,6 +396,9 @@
 
 (defun add-input-handler (obj)
   (push obj *input-handlers*))
+
+(defun remove-input-handler (obj)
+  (remove obj *input-handlers* :test 'eq))
 
 (defun handle-key-down (scancode)
   (loop for obj in *input-handlers*
