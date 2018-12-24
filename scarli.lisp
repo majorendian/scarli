@@ -31,6 +31,8 @@
            object-scene
            text
            progressive-text
+           paged-text
+           multiline-text
            script
            script-update
            script-input
@@ -74,6 +76,7 @@
 
 (defparameter *default-font-path* "kongtext.ttf")
 (defparameter *default-font* nil)
+(defparameter *default-font-size* 16)
 (defparameter *MAX_FPS* 30)
 
 ;list of objects that process input
@@ -141,10 +144,12 @@
    (width :accessor object-width :initarg :w :initform 0)
    (height :accessor object-height :initarg :h :initform 0)
    (scene :accessor object-scene :initform nil)
+   (layer :accessor object-layer :initform nil)
    (collision-rect :accessor object-collision-rect :initarg :collision-rect :initform (make-instance 'rectangle))
    (collision-enabled :accessor object-collision-enabled :initarg :collision-enabled :initform nil)
    (on-collide :accessor object-custom-on-collide :initarg :on-collide :initform (lambda (self collider)
                                                                             (declare (ignore self) (ignore collider))))
+   (signals :accessor object-signals :initform (make-hash-table))
    (is-colliding :accessor object-is-colliding :initform nil)
    (z-index :accessor object-z-index :initarg :z-index :initform 0)
    (attributes :accessor object-attributes :initform (make-hash-table))
@@ -172,9 +177,25 @@
 (defgeneric object-on-collide (self obj_b)
   (:documentation "Fires when 2 objects have an intersecting collision rectangle"))
 
+(defgeneric object-add-signal-handler (self symbol function)
+  (:documentation "Add a handler to a signal named by SYMBOL"))
+
+(defmethod object-add-signal-handler ((self object) (s symbol) (f function))
+  (setf (gethash s (object-signals self)) f))
+
+(defmethod object-remove-signal-handler ((self object) (s symbol))
+  (remhash s (object-signals self)))
+
+(defmethod object-fire-signal ((self object) (sig symbol))
+  (let ((sighandler (gethash sig (object-signals self))))
+    (when sighandler
+      (funcall sighandler self))))
+
 (defmethod object-init ((obj object)))
 
 (defmethod object-update ((self object) (dt float)))
+
+(defmethod object-draw ((self object) dst_surf))
 
 (defmethod object-ready ((self object)))
 
@@ -214,7 +235,7 @@
 ; Text class
 ;=================
 (defclass text (object)
-  ((text :accessor text-text :initarg :text :initform "PLACEHOLDER_TEXT")))
+  ((text :accessor text-text :initarg :text :initform " ")))
 
 (defmethod object-draw ((obj text) dst_surf)
   (when (> (length (text-text obj)) 0) 
@@ -227,8 +248,15 @@
                                          (sdl2:surface-width text_surf) (sdl2:surface-height text_surf)))
       )))
 
+
+
+
+
+;===========================
+; NOTE: need multiline text from sdl2-ttf
+;===========================
 (defclass progressive-text (text)
-  ((text-to-render :accessor text-text-to-render :initarg :text :initform "PLACEHOLDER_TEXT")
+  ((text-to-render :accessor text-text-to-render :initarg :text :initform " ")
    (current-text :accessor text-text :initform "")
    ))
 
@@ -245,8 +273,45 @@
     (object-set self 'accum_delta 0)
     (object-set self 'txt_index (+ 1 (object-get self 'txt_index)))
     (when (= (length (text-text-to-render self)) (length (text-text self)))
-      ;text displaying ends here
-      )))
+      (object-fire-signal self 'text-finished))
+    ))
+
+(defclass multiline-text (object)
+  ((lines :accessor text-lines :initarg :lines :initform (list))
+   ))
+
+(defmethod multiline-text-new-line ((self multiline-text) y)
+  (let ((newline_text (make-instance 'progressive-text
+                                     :name "newline"
+                                     :x (object-x self)
+                                     :y y
+                                     :text (nth (object-get self 'line_index) (text-lines self)))))
+    (format t "adding object ~S to scene ~S~%" newline_text (object-scene self))
+    (add-obj-to-scene (object-scene self) (object-layer self) newline_text)
+    newline_text))
+
+(defmethod object-ready ((self multiline-text))
+  (format t "ready to draw lines~%")
+  (object-set self 'line_index 0)
+  (object-set self 'line_y (object-y self))
+  (object-set self 'last_line (multiline-text-new-line self (object-get self 'line_y)))
+  ;the handler attaches itself to subsequent lines being displayed within itself
+  (object-set self 'finished-text-handler 
+              (lambda (text_obj)
+                (declare (ignore text_obj))
+                (if (< (object-get self 'line_index) (length (text-lines self)))
+                    (progn
+                      (object-set self 'line_index (+ 1 (object-get self 'line_index)))
+                      (object-set self 'line_y (+ *default-font-size* (object-get self 'line_y)))
+                      (object-remove-signal-handler (object-get self 'last_line) 'text-finished)
+                      (object-set self 'last_line (multiline-text-new-line self (object-get self 'line_y)))
+                      (object-add-signal-handler (object-get self 'last_line) 'text-finished (object-get self 'finished-text-handler)))
+                    (progn
+                      ;at last remove the last handler so this gets called only once
+                      (object-remove-signal-handler (object-get self 'last_line) 'text-finished)
+                      (object-fire-signal self 'multiline-text-finished)
+                      (format t "Finished displaying all lines~%")))))
+  (object-add-signal-handler (object-get self 'last_line) 'text-finished (object-get self 'finished-text-handler)))
 
 ;=================
 ; Drawable class
@@ -403,6 +468,7 @@
                      do (return l))))
     ;initialize object before pushing it into the layer in the scene
     (setf (object-scene obj) sc)
+    (setf (object-layer obj) layer_name)
     (object-init obj)
     (push obj (layer-objects layer))
     ))
@@ -479,7 +545,7 @@
   (sdl2:with-init (:everything)
     (sdl2-image:init (list :png))
     (sdl2-ttf:init)
-    (setf *default-font* (sdl2-ttf:open-font (truename *default-font-path*) 8))
+    (setf *default-font* (sdl2-ttf:open-font (truename *default-font-path*) *default-font-size*))
     (sdl2:with-window (win :title "Scarli" :flags (list :shown) :w width :h height)
       ;setup main window surface and variables for calculating delta and limmiting fps
       (let ((main_surface (sdl2:get-window-surface win))
