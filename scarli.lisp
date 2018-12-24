@@ -77,7 +77,7 @@
 (defparameter *default-font-path* "kongtext.ttf")
 (defparameter *default-font* nil)
 (defparameter *default-font-size* 16)
-(defparameter *MAX_FPS* 30)
+(defparameter *MAX_FPS* 60)
 
 ;list of objects that process input
 (defparameter *input-handlers* (list))
@@ -216,7 +216,7 @@
              (object-ready child))))
 
 (defmethod object-remove-child ((self object) (obj object))
-  (remove obj (object-children self) :test 'eq))
+  (setf (object-children self) (remove obj (object-children self) :test 'eq)))
 
 (defmethod object-set ((obj object) (sym symbol) (val t))
   (setf (gethash sym (object-attributes obj)) val))
@@ -237,17 +237,16 @@
         (setf (object-is-colliding obj_2) is_collision)
         is_collision))))
 
-;(defmethod object-remove ((obj object))
-  ;(loop for a_layer in (scene-layers (object-scene obj))
-        ;do (loop for obj_to_remove in (layer-objects a_layer)
-                 ;when (eq obj obj_to_remove)
-                 ;do (progn
-                      ;(format t "removing object ~S~%" obj)
-                      ;(setf (layer-objects a_layer) (remove obj (layer-objects a_layer)))
-                      ;(return)))))
+(defun get-layer (sc layername)
+  (loop for l in (scene-layers sc)
+        when (string= (layer-name l) layername)
+        do (progn
+             (format t "Found layer with name:~S~%" layername)
+             (return l))))
 
 (defmethod object-remove ((obj object))
-  )
+  (setf (layer-objects (get-layer (object-scene obj) (object-layer obj))) 
+        (remove obj (layer-objects (get-layer (object-scene obj) (object-layer obj))) :test 'eq)))
 
 ;=================
 ; Text class
@@ -336,7 +335,8 @@
                                                                  (list "page one line one"
                                                                        "page one line two")
                                                                  (list "page two line one"
-                                                                       "page two line two")))))
+                                                                       "page two line two")))
+   (has-focus :accessor paged-text-has-focus :initform t)))
 
 (defmethod paged-text-create-multiline ((self paged-text) (mul_text list))
   (let ((multi (make-instance 'multiline-text
@@ -349,13 +349,23 @@
 (defmethod object-ready ((self paged-text))
   (format t "readying paged text~%")
   (object-set self 'page_index 0)
+  (object-set self 'page_finished nil)
   (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
   (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
                              (lambda (multi)
                                (format t "Finished displaying all lines~%")
-                               (object-remove multi)
-                               ))
-  )
+                               (object-set self 'page_finished t)
+                               )))
+
+(defmethod object-input ((self paged-text) scancode pressed)
+  (when (and (not pressed) (sdl2:scancode= scancode :scancode-space))
+    (when (and (paged-text-has-focus self) (object-get self 'page_finished))
+      (object-remove-child self (object-get self 'last_multiline))
+      (format t "child removed~%")
+      (object-set self 'page_index (+ 1 (object-get self 'page_index)))
+      (when (< (object-get self 'page_index) (length (paged-text-pages self)))
+        (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self)))))
+      )))
 
 ;=================
 ; Drawable class
@@ -547,18 +557,19 @@
                             (loop for a_script in (object-scripts obj)
                                   do (funcall (script-on-collide a_script) obj obj_b))))))))
 
-(defun rec-update-and-draw-children (obj dst_surf dt)
-  (if (object-children obj)
-      (progn
-        (loop for child in (object-children obj)
-              do (progn
-                   (loop for a_script in (object-scripts child)
-                         do (progn
-                              (funcall (script-update a_script) child dt)
-                              (funcall (script-draw a_script) child dst_surf)))
-                   (object-update child dt)
-                   (object-draw child dst_surf)))
-        (rec-update-and-draw-children (first (object-children obj)) dst_surf dt))))
+;NOTE: this function still needs more proper testing
+(defun rec-update-and-draw-children (l dst_surf dt)
+  (let ((child (first l)))
+    (if child
+        (progn
+          (object-update child dt)
+          (object-draw child dst_surf)
+          (loop for s in (object-scripts child)
+                do (progn
+                     (funcall (script-update s) child dt)
+                     (funcall (script-draw s) child dst_surf)))
+          (rec-update-and-draw-children (object-children child) dst_surf dt)
+          (rec-update-and-draw-children (rest l) dst_surf dt)))))
 
 (defun update-and-draw-scene (dst_surf sc dt)
   (loop for a_layer in (scene-layers sc)
@@ -571,7 +582,7 @@
                           ;update and draw children first
                           (progn
                             ;iterate over children
-                            (rec-update-and-draw-children obj dst_surf dt)
+                            (rec-update-and-draw-children (object-children obj) dst_surf dt)
                             ;then update object
                             (object-update obj dt)))
                       ;then update object scripts
