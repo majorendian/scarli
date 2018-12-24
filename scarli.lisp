@@ -206,7 +206,14 @@
 
 (defmethod object-add-child ((self object) (obj object))
   (push obj (object-children self))
-  (object-ready obj))
+  (setf (object-scene obj) (object-scene self))
+  (setf (object-layer obj) (object-layer self))
+  (object-ready obj)
+  (loop for child in (object-children obj)
+        do (progn
+             (setf (object-scene child) (object-scene obj))
+             (setf (object-layer child) (object-layer obj))
+             (object-ready child))))
 
 (defmethod object-remove-child ((self object) (obj object))
   (remove obj (object-children self) :test 'eq))
@@ -230,14 +237,17 @@
         (setf (object-is-colliding obj_2) is_collision)
         is_collision))))
 
+;(defmethod object-remove ((obj object))
+  ;(loop for a_layer in (scene-layers (object-scene obj))
+        ;do (loop for obj_to_remove in (layer-objects a_layer)
+                 ;when (eq obj obj_to_remove)
+                 ;do (progn
+                      ;(format t "removing object ~S~%" obj)
+                      ;(setf (layer-objects a_layer) (remove obj (layer-objects a_layer)))
+                      ;(return)))))
+
 (defmethod object-remove ((obj object))
-  (loop for a_layer in (scene-layers (object-scene obj))
-        do (loop for obj_to_remove in (layer-objects a_layer)
-                 when (eq obj obj_to_remove)
-                 do (progn
-                      (format t "removing object ~S~%" obj)
-                      (setf (layer-objects a_layer) (remove obj (layer-objects a_layer)))
-                      (return)))))
+  )
 
 ;=================
 ; Text class
@@ -269,7 +279,7 @@
    ))
 
 (defmethod object-ready ((self progressive-text))
-  (format t "initializing progressive text")
+  (format t "initializing progressive text~%")
   (object-set self 'txt_index 1)
   (object-set self 'accum_delta 0))
 
@@ -333,10 +343,11 @@
                               :x (object-x self)
                               :y (object-y self)
                               :lines mul_text)))
-    (add-obj-to-scene (object-scene self) (object-layer self) multi)
+    (object-add-child self multi)
     multi))
 
 (defmethod object-ready ((self paged-text))
+  (format t "readying paged text~%")
   (object-set self 'page_index 0)
   (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
   (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
@@ -536,6 +547,19 @@
                             (loop for a_script in (object-scripts obj)
                                   do (funcall (script-on-collide a_script) obj obj_b))))))))
 
+(defun rec-update-and-draw-children (obj dst_surf dt)
+  (if (object-children obj)
+      (progn
+        (loop for child in (object-children obj)
+              do (progn
+                   (loop for a_script in (object-scripts child)
+                         do (progn
+                              (funcall (script-update a_script) child dt)
+                              (funcall (script-draw a_script) child dst_surf)))
+                   (object-update child dt)
+                   (object-draw child dst_surf)))
+        (rec-update-and-draw-children (first (object-children obj)) dst_surf dt))))
+
 (defun update-and-draw-scene (dst_surf sc dt)
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (sort (layer-objects a_layer) 
@@ -547,17 +571,7 @@
                           ;update and draw children first
                           (progn
                             ;iterate over children
-                            (loop for child in (object-children obj)
-                                  do (progn
-                                       ;iterate over child scripts
-                                       (loop for a_script in (object-scripts child)
-                                             do (progn
-                                                  (funcall (script-update a_script) child dt)
-                                                  (funcall (script-draw a_script) child dst_surf)))
-                                       (object-update child dt)
-                                       (object-draw child dst_surf)
-                                       (when (object-collision-enabled child)
-                                         (check-collision sc child))))
+                            (rec-update-and-draw-children obj dst_surf dt)
                             ;then update object
                             (object-update obj dt)))
                       ;then update object scripts
