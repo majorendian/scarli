@@ -204,6 +204,13 @@
 
 (defmethod object-on-collide ((self object) (obj_b object)))
 
+(defmethod object-add-child ((self object) (obj object))
+  (push obj (object-children self))
+  (object-ready obj))
+
+(defmethod object-remove-child ((self object) (obj object))
+  (remove obj (object-children self) :test 'eq))
+
 (defmethod object-set ((obj object) (sym symbol) (val t))
   (setf (gethash sym (object-attributes obj)) val))
 
@@ -261,7 +268,8 @@
    (current-text :accessor text-text :initform "")
    ))
 
-(defmethod object-init ((self progressive-text))
+(defmethod object-ready ((self progressive-text))
+  (format t "initializing progressive text")
   (object-set self 'txt_index 1)
   (object-set self 'accum_delta 0))
 
@@ -287,7 +295,7 @@
                                      :x (object-x self)
                                      :y y
                                      :text (nth (object-get self 'line_index) (text-lines self)))))
-    (add-obj-to-scene (object-scene self) (object-layer self) newline_text)
+    (object-add-child self newline_text)
     newline_text))
 
 (defmethod object-ready ((self multiline-text))
@@ -494,9 +502,13 @@
     ;initialize object before pushing it into the layer in the scene
     (setf (object-scene obj) sc)
     (setf (object-layer obj) layer_name)
+    (loop for child in (object-children obj)
+          do (object-init child))
     (object-init obj)
     (push obj (layer-objects layer))
     (when (sdl2:was-init)
+      (loop for child in (object-children obj)
+            do (object-ready child))
       (object-ready obj))
     ))
 
@@ -506,7 +518,10 @@
                  do (progn
                       (if (object-custom-ready obj)
                           (funcall (object-custom-ready obj) obj)
-                          (object-ready obj))
+                          (progn
+                            (loop for child in (object-children obj)
+                                  do (object-ready child))
+                            (object-ready obj)))
                       (loop for a_script in (object-scripts obj)
                             do (funcall (script-ready a_script) obj))))))
 
@@ -529,11 +544,28 @@
                  do (progn
                       (if (object-custom-update obj)
                           (funcall (object-custom-update obj) obj dt)
-                          (object-update obj dt))
+                          ;update and draw children first
+                          (progn
+                            ;iterate over children
+                            (loop for child in (object-children obj)
+                                  do (progn
+                                       ;iterate over child scripts
+                                       (loop for a_script in (object-scripts child)
+                                             do (progn
+                                                  (funcall (script-update a_script) child dt)
+                                                  (funcall (script-draw a_script) child dst_surf)))
+                                       (object-update child dt)
+                                       (object-draw child dst_surf)
+                                       (when (object-collision-enabled child)
+                                         (check-collision sc child))))
+                            ;then update object
+                            (object-update obj dt)))
+                      ;then update object scripts
                       (loop for a_script in (object-scripts obj)
                             do (progn
                                  (funcall (script-update a_script) obj dt)
                                  (funcall (script-draw a_script) obj dst_surf)))
+                      ;finally check parent for collision
                       (when (object-collision-enabled obj)
                         (check-collision sc obj))
                       (if (object-custom-draw obj)
@@ -552,7 +584,10 @@
         do (progn
              (if (object-custom-input obj)
                  (funcall (object-custom-input obj) obj scancode t)
-                 (object-input obj scancode t))
+                 (progn
+                   (loop for child in (object-children obj)
+                         do (object-input child scancode t))
+                   (object-input obj scancode t)))
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode t)))))
 
@@ -561,7 +596,10 @@
         do (progn
              (if (object-custom-input obj)
                  (funcall (object-custom-input obj) obj scancode nil)
-                 (object-input obj scancode nil))
+                 (progn
+                   (loop for child in (object-children obj)
+                         do (object-input child scancode nil))
+                   (object-input obj scancode nil)))
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
 
