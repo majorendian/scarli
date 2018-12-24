@@ -629,7 +629,7 @@
                    do (funcall (script-input a_script) obj scancode nil)))))
 
 (defun main (sc cam width height)
-  (declare (scene sc) (camera cam ) (number width ) (number height ))
+  (declare (scene sc) (camera cam) (number width) (number height))
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
   (sdl2:with-init (:everything)
