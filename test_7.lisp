@@ -38,5 +38,5 @@
 
 (add-input-handler *paged-text*)
 (add-obj-to-scene *testscene* "bottom" *paged-text*)
-;(add-obj-to-scene *testscene* "bottom" *multi*)
+(add-obj-to-scene *testscene* "bottom" *multi*)
 (main *testscene* *camera* *width* *height*)
