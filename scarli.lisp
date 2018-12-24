@@ -150,6 +150,7 @@
    (on-collide :accessor object-custom-on-collide :initarg :on-collide :initform (lambda (self collider)
                                                                             (declare (ignore self) (ignore collider))))
    (signals :accessor object-signals :initform (make-hash-table))
+   (children :accessor object-children :initform (list))
    (is-colliding :accessor object-is-colliding :initform nil)
    (z-index :accessor object-z-index :initarg :z-index :initform 0)
    (attributes :accessor object-attributes :initform (make-hash-table))
@@ -286,7 +287,6 @@
                                      :x (object-x self)
                                      :y y
                                      :text (nth (object-get self 'line_index) (text-lines self)))))
-    (format t "adding object ~S to scene ~S~%" newline_text (object-scene self))
     (add-obj-to-scene (object-scene self) (object-layer self) newline_text)
     newline_text))
 
@@ -310,8 +310,33 @@
                       ;at last remove the last handler so this gets called only once
                       (object-remove-signal-handler (object-get self 'last_line) 'text-finished)
                       (object-fire-signal self 'multiline-text-finished)
-                      (format t "Finished displaying all lines~%")))))
+                      ))))
   (object-add-signal-handler (object-get self 'last_line) 'text-finished (object-get self 'finished-text-handler)))
+
+(defclass paged-text (object)
+  ((pages :accessor paged-text-pages :initarg :pages :initform (list
+                                                                 (list "page one line one"
+                                                                       "page one line two")
+                                                                 (list "page two line one"
+                                                                       "page two line two")))))
+
+(defmethod paged-text-create-multiline ((self paged-text) (mul_text list))
+  (let ((multi (make-instance 'multiline-text
+                              :x (object-x self)
+                              :y (object-y self)
+                              :lines mul_text)))
+    (add-obj-to-scene (object-scene self) (object-layer self) multi)
+    multi))
+
+(defmethod object-ready ((self paged-text))
+  (object-set self 'page_index 0)
+  (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
+  (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
+                             (lambda (multi)
+                               (format t "Finished displaying all lines~%")
+                               (object-remove multi)
+                               ))
+  )
 
 ;=================
 ; Drawable class
@@ -471,6 +496,8 @@
     (setf (object-layer obj) layer_name)
     (object-init obj)
     (push obj (layer-objects layer))
+    (when (sdl2:was-init)
+      (object-ready obj))
     ))
 
 (defmethod ready-all-objects ((sc scene))
