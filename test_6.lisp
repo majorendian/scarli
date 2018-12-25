@@ -19,7 +19,7 @@
 
 (defparameter *tile-map* (map-from-size 1024 768 32 #(1 0)))
 
-(defparameter *player* (get-default-player 0 0 "test_spritesheet.png"))
+(defparameter *player* (get-default-player 32 32 "test_spritesheet.png"))
 
 (defun make-square (x y)
   (make-instance 'scarli:object
@@ -44,6 +44,9 @@
                                       :w 640
                                       :h 480
                                       :parent *player*))
+
+(map-set-tile *tile-map* 0 0 #(0 0 'solid-tile))
+(map-set-tile *tile-map* 1 0 #(0 0 'solid-tile))
 (add-obj-to-scene *testscene* "middle" *player*)
 (add-obj-to-scene *testscene* "middle" (make-square (/ *width* 2) 400))
 (add-obj-to-scene *testscene* "middle" (make-square (+ 32 (/ *width* 2)) 400))

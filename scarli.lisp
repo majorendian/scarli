@@ -26,9 +26,14 @@
            object-collision-enabled
            object-collide
            object-is-colliding
+           object-input
+           object-ready
            object-move
            object-remove
+           object-mouse-button
            object-scene
+           object-layer
+           drawable-image-rect
            text
            progressive-text
            paged-text
@@ -46,7 +51,10 @@
            drawable-set-frame
            drawable-set-anim-index
            drawable-get-frame
+           tile
+           solid-tile
            make-tiles
+           create-tile
            map-from-size
            map-set-tile
            rectangle
@@ -67,7 +75,11 @@
            camera-main-surface
            add-obj-to-scene
            add-input-handler
+           get-obj-at-pos
+           clear-input-handlers
            *persistent-scene*
+           *mouse_x*
+           *mouse_y*
            main
            ))
 
@@ -172,8 +184,8 @@
 (defgeneric object-ready (obj)
   (:documentation "Prepares the object after SDL initialization"))
 
-(defgeneric object-input (obj scancode pressed)
-  (:documentation "Fires when added into *input-handlers* this function processes key presses"))
+;(defgeneric object-input (obj scancode pressed)
+;  (:documentation "Fires when added into *input-handlers* this function processes key presses"))
 
 (defgeneric object-on-collide (self obj_b)
   (:documentation "Fires when 2 objects have an intersecting collision rectangle"))
@@ -201,6 +213,8 @@
 (defmethod object-ready ((self object)))
 
 (defmethod object-input ((self object) scancode pressed))
+
+(defmethod object-mouse-button ((self object) btn_index pressed))
 
 (defmethod object-on-collide ((self object) (obj_b object)))
 
@@ -403,8 +417,27 @@
 (defclass tile (drawable)
   ())
 
-(defun make-tiles (sc layer_str tile_size tile_sheet_path tile_map)
-  (declare (string layer_str) (string tile_sheet_path) (list tile_map) (number tile_size))
+(defclass solid-tile (tile)
+  ((collision-enabled :accessor object-collision-enabled :initform t)))
+
+(defun create-tile (&key tile-sheet-path tile-size tile-class x y)
+  (make-instance tile-class
+                 :x x
+                 :y y
+                 :image-path tile-sheet-path
+                 :image-rect (make-instance 
+                               'rectangle 
+                               :x 0
+                               :y 0
+                               :w tile-size :h tile-size)
+                 :collision-rect (make-instance 'rectangle
+                                                :x x
+                                                :y y
+                                                :w tile-size
+                                                :h tile-size)))
+
+(defun make-tiles (sc layer_str tile_size tile_sheet_path tile_map &optional (default_tile_class 'tile))
+  (declare (scene sc) (string layer_str) (number tile_size) (string tile_sheet_path) (list tile_map) (number tile_size))
   (loop for row in tile_map
         for ri = 0 then (+ ri 1)
         do (loop for col in row
@@ -413,7 +446,9 @@
                       (add-obj-to-scene
                         sc
                         layer_str
-                        (make-instance 'tile
+                        (make-instance (if (> (length col) 2)
+                                           (eval (aref col 2))
+                                           default_tile_class)
                                        :x (* ci tile_size)
                                        :y (* ri tile_size)
                                        :image-path tile_sheet_path
@@ -421,7 +456,12 @@
                                                      'rectangle 
                                                      :x (* (aref col 0) tile_size) 
                                                      :y (* (aref col 1) tile_size) 
-                                                     :w tile_size :h tile_size)))
+                                                     :w tile_size :h tile_size)
+                                       :collision-rect (make-instance 'rectangle
+                                                                      :x (* ci tile_size)
+                                                                      :y (* ri tile_size)
+                                                                      :w tile_size
+                                                                      :h tile_size)))
                       ))))
 
 (defun map-from-size (width height tile_size vec)
@@ -438,12 +478,12 @@
           )
     result_list))
 
-(defun map-set-tile (amap x y vec)
+(defun map-set-tile (amap col row vec)
   (if (and
-        (> (length (nth 0 amap)) x)
-        (> (length amap) y))
+        (> (length (nth 0 amap)) col)
+        (> (length amap) row))
       (progn
-        (setf (nth x (nth y amap)) vec))
+        (setf (nth col (nth row amap)) vec))
       (progn
         (format t "Coordinates too big~%")
         )
@@ -546,6 +586,15 @@
                       (loop for a_script in (object-scripts obj)
                             do (funcall (script-ready a_script) obj))))))
 
+(defun get-obj-at-pos (sc x y)
+  (loop for a_layer in (scene-layers sc)
+        do (loop for obj in (layer-objects a_layer)
+                 do (progn
+                      (when (and (= x (object-x obj)) (= y (object-y obj)))
+                        (when (eq (find-class 'tile) (class-of obj))
+                          (format t "found tile:~S~%" obj)
+                          (return-from get-obj-at-pos obj)))))))
+
 (defun check-collision (sc obj)
   (loop for a_layer in (scene-layers sc)
         do (loop for obj_b in (layer-objects a_layer)
@@ -601,6 +650,9 @@
 (defun add-input-handler (obj)
   (push obj *input-handlers*))
 
+(defun clear-input-handlers ()
+  (setf *input-handlers* (list)))
+
 (defun remove-input-handler (obj)
   (remove obj *input-handlers* :test 'eq))
 
@@ -624,9 +676,25 @@
                  (progn
                    (loop for child in (object-children obj)
                          do (object-input child scancode nil))
+                   (format t "calling input function on obj ~S~%" obj)
                    (object-input obj scancode nil)))
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
+
+(defparameter *mouse_x* 0)
+(defparameter *mouse_y* 0)
+(defun handle-mouse-down (button_idx)
+  (loop for obj in *input-handlers*
+        do (progn
+             (object-mouse-button obj button_idx t))))
+(defun handle-mouse-up (button_idx)
+  (loop for obj in *input-handlers*
+        do (progn
+             (object-mouse-button obj button_idx nil))))
+
+(defun handle-mouse-motion (x y xrel yrel state)
+  (setf *mouse_x* x)
+  (setf *mouse_y* y))
 
 (defun main (sc cam width height)
   (declare (scene sc) (camera cam) (number width) (number height))
@@ -695,4 +763,10 @@
              (handle-key-down scancode)))
           (:keyup (:keysym keysym)
            (let ((scancode (sdl2:scancode-value keysym)))
-             (handle-key-up scancode))))))))
+             (handle-key-up scancode)))
+          (:mousebuttondown (:button button)
+           (handle-mouse-down button))
+          (:mousebuttonup (:button button)
+           (handle-mouse-up button))
+          (:mousemotion (:x x :y y :xrel xrel :yrel yrel :state state)
+           (handle-mouse-motion x y xrel yrel state)))))))
