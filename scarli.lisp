@@ -21,7 +21,9 @@
            object-update
            object-draw
            object-set
+           <-
            object-get
+           ->
            object-collision-rect
            object-collision-enabled
            object-collide
@@ -35,6 +37,7 @@
            object-layer
            drawable-image-rect
            text
+           text-text
            progressive-text
            paged-text
            multiline-text
@@ -47,6 +50,7 @@
            drawable
            drawable-advance-frame
            drawable-animate
+           drawable-image
            drawable-anim-index
            drawable-set-frame
            drawable-set-anim-index
@@ -76,6 +80,7 @@
            add-obj-to-scene
            add-input-handler
            get-obj-at-pos
+           get-obj-at-pos-in-layer
            clear-input-handlers
            *persistent-scene*
            *mouse_x*
@@ -88,7 +93,7 @@
 
 (defparameter *default-font-path* "kongtext.ttf")
 (defparameter *default-font* nil)
-(defparameter *default-font-size* 16)
+(defparameter *default-font-size* 12)
 (defparameter *MAX_FPS* 60)
 
 ;list of objects that process input
@@ -156,7 +161,7 @@
    (width :accessor object-width :initarg :w :initform 0)
    (height :accessor object-height :initarg :h :initform 0)
    (scene :accessor object-scene :initform nil)
-   (layer :accessor object-layer :initform nil)
+   (layer :accessor object-layer :initarg :layer :initform nil)
    (collision-rect :accessor object-collision-rect :initarg :collision-rect :initform (make-instance 'rectangle))
    (collision-enabled :accessor object-collision-enabled :initarg :collision-enabled :initform nil)
    (on-collide :accessor object-custom-on-collide :initarg :on-collide :initform (lambda (self collider)
@@ -238,6 +243,12 @@
 (defmethod object-get ((obj object) (sym symbol))
   (gethash sym (object-attributes obj)))
 
+(defmacro -> (obj sym)
+  `(gethash ,sym (object-attributes ,obj)))
+
+(defmacro <- (obj sym val)
+  `(setf (-> ,obj ,sym) ,val))
+
 (defmethod object-move ((obj object) (x number) (y number) (dt float))
   (setf (object-x obj) (round (+ (* x dt) (object-x obj))))
   (setf (object-y obj) (round (+ (* y dt) (object-y obj)))))
@@ -250,6 +261,7 @@
         (setf (object-is-colliding obj) is_collision)
         (setf (object-is-colliding obj_2) is_collision)
         is_collision))))
+
 
 (defun get-layer (sc layername)
   (loop for l in (scene-layers sc)
@@ -595,6 +607,15 @@
                           (format t "found tile:~S~%" obj)
                           (return-from get-obj-at-pos obj)))))))
 
+(defun get-obj-at-pos-in-layer (sc layer x y)
+  (loop for obj in (layer-objects (get-layer sc layer))
+        do (progn
+             (when (and (= x (object-x obj)) (= y (object-y obj)))
+               (when (eq (find-class 'tile) (class-of obj))
+                 (format t "found tile:~S~%" obj)
+                 (return-from get-obj-at-pos-in-layer obj)))) 
+        ))
+
 (defun check-collision (sc obj)
   (loop for a_layer in (scene-layers sc)
         do (loop for obj_b in (layer-objects a_layer)
@@ -713,6 +734,7 @@
             (last_ticks (sdl2:get-ticks))
             (sec_surf (sdl2:create-rgb-surface 1024 720 32)))
         (camera-init cam main_surface)
+        (ready-all-objects *persistent-scene*)
         (ready-all-objects sc)
         (sdl2:with-event-loop (:method :poll)
           (:idle ()
@@ -736,16 +758,19 @@
              (sdl2:fill-rect main_surface nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
              (sdl2:fill-rect sec_surf nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
 
-             ;update and draw the persitent scene
-             (update-and-draw-scene sec_surf *persistent-scene* delta)
              ;update and draw the game main scene
              (update-and-draw-scene sec_surf sc delta)
              (when (camera-parent cam)
                (camera-center cam))
+
              
              (sdl2:blit-surface sec_surf nil
                                 main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
                                                              (camera-w cam) (camera-h cam)))
+
+             ;update and draw the persitent scene
+             (update-and-draw-scene main_surface *persistent-scene* delta)
+
              (sdl2:update-window win)
              ;update fps counter every second along with last ticks
              (when (>= (- current_ticks last_ticks) 1000)
