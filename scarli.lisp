@@ -541,9 +541,24 @@
   (setf (camera-surface c) (sdl2:create-rgb-surface (camera-w c) (camera-h c) 32))
   (setf (camera-main-surface c) dst_surf))
 
-(defmethod camera-center ((c camera))
-  (setf (camera-x c) (+ (* -1 (object-x (camera-parent c))) (/ (camera-w c) 2) ) )
-  (setf (camera-y c) (+ (* -1 (object-y (camera-parent c))) (/ (camera-h c) 2))))
+(defmethod camera-center ((c camera) sec_surf)
+  (setf (camera-x c) (+ (* -1 (object-x (camera-parent c))) (/ (camera-w c) 2) ) ) 
+  (setf (camera-y c) (+ (* -1 (object-y (camera-parent c))) (/ (camera-h c) 2))) 
+  (when (and (> (object-x (camera-parent c)) 0)
+             (< (object-x (camera-parent c)) (/ (camera-w c) 2)))
+    (setf (camera-x c) 0))
+  (when (and (> (object-y (camera-parent c)) 0)
+             (< (object-y (camera-parent c)) (/ (camera-h c) 2)))
+    (setf (camera-y c) 0))
+  (when (and (> (object-x (camera-parent c)) (- (sdl2:surface-width sec_surf) (/ (camera-w c) 2)))
+             (< (object-x (camera-parent c)) (sdl2:surface-width sec_surf)))
+    (format t "surface width:~S~%" (sdl2:surface-width (camera-main-surface c)))
+    (setf (camera-x c) (* -1 (- (sdl2:surface-width sec_surf) (camera-w c)))))
+  (when (and (> (object-y (camera-parent c)) (- (sdl2:surface-height sec_surf) (/ (camera-h c) 2)))
+             (< (object-y (camera-parent c)) (sdl2:surface-height sec_surf)))
+    (format t "surface width:~S~%" (sdl2:surface-height (camera-main-surface c)))
+    (setf (camera-y c) (* -1 (- (sdl2:surface-height sec_surf) (camera-h c)))))
+  )
 
 ;==================================
 ; Utility functions
@@ -761,7 +776,7 @@
              ;update and draw the game main scene
              (update-and-draw-scene sec_surf sc delta)
              (when (camera-parent cam)
-               (camera-center cam))
+               (camera-center cam sec_surf))
 
              
              (sdl2:blit-surface sec_surf nil
