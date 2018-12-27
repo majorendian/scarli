@@ -463,6 +463,8 @@
                                            default_tile_class)
                                        :x (* ci tile_size)
                                        :y (* ri tile_size)
+                                       :w tile_size
+                                       :h tile_size
                                        :image-path tile_sheet_path
                                        :image-rect (make-instance 
                                                      'rectangle 
@@ -639,22 +641,33 @@
                             (object-on-collide  obj obj_b)
                             (loop for a_script in (object-scripts obj)
                                   do (funcall (script-on-collide a_script) obj obj_b))))))))
+(defun is-inside-camera (cam obj)
+  (if (and (>= (+ (object-width obj) (object-x obj)) (* -1 (camera-x cam)))
+           (>= (+ (object-height obj) (object-y obj)) (* -1 (camera-y cam)))
+           (<= (object-x obj) (+ (camera-w cam) (* -1 (camera-x cam))))
+           (<= (object-y obj) (+ (camera-w cam) (* -1 (camera-y cam)) )))
+      t
+      nil))
 
 ;NOTE: this function still needs more proper testing
-(defun rec-update-and-draw-children (l dst_surf dt)
+(defun rec-update-and-draw-children (l dst_surf dt cam)
   (let ((child (first l)))
     (if child
         (progn
           (object-update child dt)
-          (object-draw child dst_surf)
+          (when (is-inside-camera cam child) 
+            (object-draw child dst_surf))
           (loop for s in (object-scripts child)
                 do (progn
                      (funcall (script-update s) child dt)
-                     (funcall (script-draw s) child dst_surf)))
-          (rec-update-and-draw-children (object-children child) dst_surf dt)
-          (rec-update-and-draw-children (rest l) dst_surf dt)))))
+                     (when (is-inside-camera cam child)
+                       (funcall (script-draw s) child dst_surf))))
+          (rec-update-and-draw-children (object-children child) dst_surf dt cam)
+          (rec-update-and-draw-children (rest l) dst_surf dt cam)))))
 
-(defun update-and-draw-scene (dst_surf sc dt)
+
+
+(defun update-and-draw-scene (dst_surf sc dt cam)
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (sort (layer-objects a_layer) 
                                   (lambda (a b)
@@ -665,20 +678,24 @@
                           ;update and draw children first
                           (progn
                             ;iterate over children
-                            (rec-update-and-draw-children (object-children obj) dst_surf dt)
+                            (rec-update-and-draw-children (object-children obj) dst_surf dt cam)
                             ;then update object
                             (object-update obj dt)))
                       ;then update object scripts
                       (loop for a_script in (object-scripts obj)
                             do (progn
                                  (funcall (script-update a_script) obj dt)
-                                 (funcall (script-draw a_script) obj dst_surf)))
+                                 (when (is-inside-camera cam obj)
+                                   (funcall (script-draw a_script) obj dst_surf))))
                       ;finally check parent for collision
                       (when (object-collision-enabled obj)
                         (check-collision sc obj))
-                      (if (object-custom-draw obj)
-                          (funcall (object-custom-draw obj) obj dst_surf)
-                          (object-draw obj dst_surf))
+                      ;then draw objects when they are in the shot of the camera
+                      
+                      (when (is-inside-camera cam obj)
+                        (if (object-custom-draw obj)
+                            (funcall (object-custom-draw obj) obj dst_surf)
+                            (object-draw obj dst_surf)))
                       ))))
 
 (defun add-input-handler (obj)
@@ -771,7 +788,7 @@
              (sdl2:fill-rect sec_surf nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
 
              ;update and draw the game main scene
-             (update-and-draw-scene sec_surf sc delta)
+             (update-and-draw-scene sec_surf sc delta cam)
              (when (camera-parent cam)
                (camera-center cam sec_surf))
 
@@ -781,7 +798,7 @@
                                                              (camera-w cam) (camera-h cam)))
 
              ;update and draw the persitent scene
-             (update-and-draw-scene main_surface *persistent-scene* delta)
+             (update-and-draw-scene main_surface *persistent-scene* delta cam)
 
              (sdl2:update-window win)
              ;update fps counter every second along with last ticks
