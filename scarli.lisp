@@ -28,8 +28,9 @@
            ->
            object-collision-rect
            object-collision-enabled
-           object-collide
            object-is-colliding
+           object-on-collide
+           collision
            object-input
            object-ready
            object-move
@@ -37,6 +38,7 @@
            object-mouse-button
            object-scene
            object-layer
+           object-scripts
            drawable-image-rect
            text
            text-text
@@ -60,6 +62,7 @@
            tile
            solid-tile
            make-tiles
+           make-tile
            create-tile
            map-from-size
            map-set-tile
@@ -193,8 +196,8 @@
 (defgeneric object-ready (obj)
   (:documentation "Prepares the object after SDL initialization"))
 
-;(defgeneric object-input (obj scancode pressed)
-;  (:documentation "Fires when added into *input-handlers* this function processes key presses"))
+(defgeneric object-input (obj scancode pressed)
+  (:documentation "Fires when added into *input-handlers* this function processes key presses"))
 
 (defgeneric object-on-collide (self obj_b)
   (:documentation "Fires when 2 objects have an intersecting collision rectangle"))
@@ -224,6 +227,16 @@
 (defmethod object-input ((self object) scancode pressed))
 
 (defmethod object-mouse-button ((self object) btn_index pressed))
+
+(defun collision (self collider &key left right bottom top)
+  (cond
+    ((> (object-x collider) (+ (object-x self) (- (object-width self) 4))) (funcall right self collider))
+    ((< (+ (object-x collider) (object-width collider)) (+ (object-x self) 4)) (funcall left self collider))
+    ((> (rect-y (object-collision-rect collider)) (+ (object-y self) (- (object-height self) 4))) (funcall bottom self collider))
+    ((< (+ (rect-y (object-collision-rect collider)) (rect-h (object-collision-rect collider))) (+ (object-y self) 4)) (funcall top self collider))
+
+    )
+  )
 
 (defmethod object-on-collide ((self object) (obj_b object)))
 
@@ -451,6 +464,24 @@
                                                 :y y
                                                 :w tile-size
                                                 :h tile-size)))
+
+(defun make-tile (&key tile-sheet-path tile-size tile-class x y ri ci)
+  (make-instance tile-class
+                 :x x
+                 :y y
+                 :image-path tile-sheet-path
+                 :image-rect (make-instance 
+                               'rectangle 
+                               :x (* ci tile-size)
+                               :y (* ri tile-size)
+                               :w tile-size :h tile-size)
+                 :collision-rect (make-instance 'rectangle
+                                                :x x
+                                                :y y
+                                                :w tile-size
+                                                :h tile-size)
+                 :w tile-size
+                 :h tile-size))
 
 (defun make-tiles (sc layer_str tile_size tile_sheet_path tile_map &optional (default_tile_class 'tile))
   (declare (scene sc) (string layer_str) (number tile_size) (string tile_sheet_path) (list tile_map) (number tile_size))
