@@ -15,9 +15,11 @@
                  :layers (list
                            (make-instance 'layer :name "bottom")
                            (make-instance 'layer :name "middle")
-                           )))
+                           )
+                 :width 1024
+                 :height 720))
 
-(defparameter *tile-map* (map-from-size 1024 768 32 #(1 0)))
+(defparameter *tile-map* (map-from-size (scene-width *testscene*) (scene-height *testscene*) 32 #(1 0)))
 
 (defparameter *player* (get-default-player 32 32 "test_spritesheet.png"))
 

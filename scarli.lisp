@@ -8,6 +8,8 @@
   (:export scene
            scene-layers
            scene-name
+           scene-width
+           scene-height
            layer
            layer-name
            layer-objects
@@ -105,7 +107,9 @@
 
 (defclass scene ()
   ((name :accessor scene-name :initarg :name)
-   (layers :accessor scene-layers :initarg :layers :initform (list))))
+   (layers :accessor scene-layers :initarg :layers :initform (list))
+   (width :accessor scene-width :initarg :width :initform 640)
+   (height :accessor scene-height :initarg :height :initform 480)))
 
 
 
@@ -787,7 +791,7 @@
             (max_frame_ticks (/ 1000.0 *MAX_FPS*))
             (fps 0)
             (last_ticks (sdl2:get-ticks))
-            (sec_surf (sdl2:create-rgb-surface 1024 720 32)))
+            (sec_surf (sdl2:create-rgb-surface (scene-width sc) (scene-height sc) 32)))
         (camera-init cam main_surface)
         (ready-all-objects *persistent-scene*)
         (ready-all-objects sc)
