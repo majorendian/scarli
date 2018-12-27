@@ -552,11 +552,9 @@
     (setf (camera-y c) 0))
   (when (and (> (object-x (camera-parent c)) (- (sdl2:surface-width sec_surf) (/ (camera-w c) 2)))
              (< (object-x (camera-parent c)) (sdl2:surface-width sec_surf)))
-    (format t "surface width:~S~%" (sdl2:surface-width (camera-main-surface c)))
     (setf (camera-x c) (* -1 (- (sdl2:surface-width sec_surf) (camera-w c)))))
   (when (and (> (object-y (camera-parent c)) (- (sdl2:surface-height sec_surf) (/ (camera-h c) 2)))
              (< (object-y (camera-parent c)) (sdl2:surface-height sec_surf)))
-    (format t "surface width:~S~%" (sdl2:surface-height (camera-main-surface c)))
     (setf (camera-y c) (* -1 (- (sdl2:surface-height sec_surf) (camera-h c)))))
   )
 
@@ -712,7 +710,6 @@
                  (progn
                    (loop for child in (object-children obj)
                          do (object-input child scancode nil))
-                   (format t "calling input function on obj ~S~%" obj)
                    (object-input obj scancode nil)))
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
