@@ -665,6 +665,13 @@
           (rec-update-and-draw-children (object-children child) dst_surf dt cam)
           (rec-update-and-draw-children (rest l) dst_surf dt cam)))))
 
+(defun rec-iterate-children (l f)
+  (let ((child (first l)))
+    (if child
+        (progn
+          (funcall f child)
+          (rec-iterate-children (object-children child) f)
+          (rec-iterate-children (rest l) f)))))
 
 
 (defun update-and-draw-scene (dst_surf sc dt cam)
@@ -697,6 +704,25 @@
                             (funcall (object-custom-draw obj) obj dst_surf)
                             (object-draw obj dst_surf)))
                       ))))
+
+(defun update-and-draw-persistent-scene (dst_surf dt)
+  (loop for a_layer in (scene-layers *persistent-scene*)
+        do (loop for obj in (layer-objects a_layer)
+                 do (progn
+                      (loop for a_script in (object-scripts obj)
+                            do (progn
+                                 (funcall (script-update a_script) obj dt)
+                                 (funcall (script-draw a_script) obj dt)))
+                      (rec-iterate-children (object-children obj)
+                                            (lambda (child)
+                                              (loop for s in (object-scripts child)
+                                                    do (progn
+                                                         (funcall (script-update s) child dt)
+                                                         (funcall (script-draw s) child dst_surf)))
+                                              (object-update child dt)
+                                              (object-draw child dst_surf)))
+                      (object-update obj dt)
+                      (object-draw obj dst_surf)))))
 
 (defun add-input-handler (obj)
   (push obj *input-handlers*))
@@ -798,7 +824,8 @@
                                                              (camera-w cam) (camera-h cam)))
 
              ;update and draw the persitent scene
-             (update-and-draw-scene main_surface *persistent-scene* delta cam)
+             ;(update-and-draw-scene main_surface *persistent-scene* delta cam)
+             (update-and-draw-persistent-scene main_surface delta)
 
              (sdl2:update-window win)
              ;update fps counter every second along with last ticks
