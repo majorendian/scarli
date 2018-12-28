@@ -17,9 +17,12 @@
                                                )))
 
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
+(defparameter *current-tile-class* 'solid-tile)
+(defparameter *available-tile-classes* 
+  (list 'tile 'solid-tile))
 
 (defun get-save-tile-format (tile)
-  `(make-instance 'tile
+  `(make-instance ',(tile-self-class tile)
                   :image-path "tile_sheet.png"
                   :x ,(object-x tile)
                   :y ,(object-y tile)
@@ -43,7 +46,8 @@
   (let ((r_list (list)))
     (loop for l in (scene-layers *scene*)
           do (loop for obj in (layer-objects l)
-                   do (when (eq (find-class 'tile) (class-of obj))
+                   do (when (or (eq (find-class 'solid-tile) (class-of obj))
+                                (eq (find-class 'tile) (class-of obj)))
                         (push (get-save-tile-format obj) r_list))))
     (with-open-file (str output_filename
                          :direction :output
@@ -56,21 +60,7 @@
                  (terpri str)))
       (format str ")"))))
 
-(defun load-tiles (filename)
-  (with-open-file (str filename
-                       :direction :input)
-    (let ((expr (read str)))
-      (eval expr))))
 
-(defun display-tiles (sc filename)
-  (loop for tile in (load-tiles filename)
-        do (add-obj-to-scene sc (object-layer tile) tile)))
-
-(defun delete-all-tiles-from-scene (sc)
-  (loop for a_layer in (scene-layers sc)
-        do (loop for obj in (layer-objects a_layer)
-                 do (when (eq (find-class 'tile) (class-of obj))
-                      (object-remove obj)))))
 
 (defclass highlight-square (object)
   ())
@@ -109,7 +99,7 @@
                    (format t "creating tile~%")
                    (setf tile (create-tile :tile-sheet-path "tile_sheet.png"
                                            :tile-size 32
-                                           :tile-class 'tile
+                                           :tile-class *current-tile-class*
                                            :x (object-x self)
                                            :y (object-y self)))
                    (add-obj-to-scene (object-scene self) *current-layer* tile)))
@@ -162,7 +152,8 @@
 
 (defmethod object-ready ((self layer-indicator))
   (format t "layer indicator ready~%")
-  (<- self 'layer_index 0))
+  (<- self 'layer_index 0)
+  )
 
 (defmethod object-update ((self layer-indicator) dt)
   (declare (ignore dt))
@@ -196,17 +187,43 @@
                                                                                 :x 0
                                                                                 :y 400
                                                                                 :text "Tilemap loaded"))))
+      
       )
     ))
+
+(defclass tile-class-indicator (text)
+  ())
+
+(defmethod object-ready ((self tile-class-indicator))
+  (<- self 'tile_class_index 0))
+
+(defmethod object-update ((self tile-class-indicator) dt)
+  (setf (text-text self) (concatenate 'string "Current tile class: " (symbol-name *current-tile-class*))))
+
+(defmethod object-input ((self tile-class-indicator) scancode pressed)
+  (when (not pressed)
+    (cond
+      ((sdl2:scancode= scancode :scancode-t) (progn
+                                               (if (< (-> self 'tile_class_index) (- (length *available-tile-classes*) 1))
+                                                   (<- self 'tile_class_index (+ 1 (-> self 'tile_class_index)))
+                                                   (<- self 'tile_class_index 0))
+                                               (setf *current-tile-class* (nth (-> self 'tile_class_index) *available-tile-classes*))))
+      ))
+  )
 
 
 (defparameter *user-cursor* (make-instance 'highlight-square :x 0 :y 0 :w 32 :h 32))
 (defparameter *camera* (make-instance 'camera :x 0 :y 0 :w *width* :h *height* :parent *user-cursor*))
 (defparameter *layer-indicator* (make-instance 'layer-indicator :text "Placeholder"))
+(defparameter *tile-class-indicator* (make-instance 'tile-class-indicator 
+                                                    :y 16
+                                                    :text "Placeholder"))
 
 (add-obj-to-scene *scene* "top" *user-cursor*)
 (add-obj-to-scene *persistent-scene* "top" *layer-indicator*)
+(add-obj-to-scene *persistent-scene* "top" *tile-class-indicator*)
 (clear-input-handlers)
 (add-input-handler *user-cursor*)
 (add-input-handler *layer-indicator*)
+(add-input-handler *tile-class-indicator*)
 (main *scene* *camera* *width* *height*)

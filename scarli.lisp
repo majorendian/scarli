@@ -60,10 +60,13 @@
            drawable-set-anim-index
            drawable-get-frame
            tile
+           tile-self-class
            solid-tile
-           make-tiles
            make-tile
            create-tile
+           load-tiles
+           display-tiles
+           delete-all-tiles-from-scene
            map-from-size
            map-set-tile
            rectangle
@@ -444,15 +447,17 @@
                                               (object-width dr) (object-height dr))) )
 
 (defclass tile (drawable)
-  ())
+  ((self-class :accessor tile-self-class :initarg :class :initform 'tile)))
 
 (defclass solid-tile (tile)
-  ((collision-enabled :accessor object-collision-enabled :initform t)))
+  ((collision-enabled :accessor object-collision-enabled :initform t)
+   (self-class :accessor tile-self-class :initarg :class :initform 'solid-tile)))
 
 (defun create-tile (&key tile-sheet-path tile-size tile-class x y)
   (make-instance tile-class
                  :x x
                  :y y
+                 :class tile-class
                  :image-path tile-sheet-path
                  :image-rect (make-instance 
                                'rectangle 
@@ -483,60 +488,6 @@
                  :w tile-size
                  :h tile-size))
 
-(defun make-tiles (sc layer_str tile_size tile_sheet_path tile_map &optional (default_tile_class 'tile))
-  (declare (scene sc) (string layer_str) (number tile_size) (string tile_sheet_path) (list tile_map) (number tile_size))
-  (loop for row in tile_map
-        for ri = 0 then (+ ri 1)
-        do (loop for col in row
-                 for ci = 0 then (+ ci 1)
-                 do (progn
-                      (add-obj-to-scene
-                        sc
-                        layer_str
-                        (make-instance (if (> (length col) 2)
-                                           (eval (aref col 2))
-                                           default_tile_class)
-                                       :x (* ci tile_size)
-                                       :y (* ri tile_size)
-                                       :w tile_size
-                                       :h tile_size
-                                       :image-path tile_sheet_path
-                                       :image-rect (make-instance 
-                                                     'rectangle 
-                                                     :x (* (aref col 0) tile_size) 
-                                                     :y (* (aref col 1) tile_size) 
-                                                     :w tile_size :h tile_size)
-                                       :collision-rect (make-instance 'rectangle
-                                                                      :x (* ci tile_size)
-                                                                      :y (* ri tile_size)
-                                                                      :w tile_size
-                                                                      :h tile_size)))
-                      ))))
-
-(defun map-from-size (width height tile_size vec)
-  (let ((num_rows (/ height tile_size))
-        (num_cols (/ width tile_size))
-        (result_list (list)))
-    (loop for ri = 0 then (+ 1 ri)
-          while (< ri num_rows)
-          do (let ((tmp_list (list))) 
-               (loop for ci = 0 then (+ 1 ci)
-                   while (< ci num_cols)
-                   do (push vec tmp_list))
-               (push tmp_list result_list))
-          )
-    result_list))
-
-(defun map-set-tile (amap col row vec)
-  (if (and
-        (> (length (nth 0 amap)) col)
-        (> (length amap) row))
-      (progn
-        (setf (nth col (nth row amap)) vec))
-      (progn
-        (format t "Coordinates too big~%")
-        )
-      ))
 
 (defmethod drawable-set-frame ((obj drawable) (frame number))
   (setf (rect-x (drawable-image-rect obj)) (* frame (rect-w (drawable-image-rect obj)))))
@@ -614,6 +565,23 @@
                )))
     (vector (comp vec 0) (comp vec 1))))
 
+(defun load-tiles (filename)
+  (with-open-file (str filename
+                       :direction :input)
+    (let ((expr (read str)))
+      (eval expr))))
+
+(defun display-tiles (sc filename)
+  (loop for tile in (load-tiles filename)
+        do (add-obj-to-scene sc (object-layer tile) tile)))
+
+(defun delete-all-tiles-from-scene (sc)
+  (loop for a_layer in (scene-layers sc)
+        do (loop for obj in (layer-objects a_layer)
+                 do (when (or (eq (find-class 'solid-tile) (class-of obj))
+                              (eq (find-class 'tile) (class-of obj)))
+                      (object-remove obj))))) 
+
 ;==================================
 ;   Main functions
 ;==================================
@@ -661,7 +629,8 @@
   (loop for obj in (layer-objects (get-layer sc layer))
         do (progn
              (when (and (= x (object-x obj)) (= y (object-y obj)))
-               (when (eq (find-class 'tile) (class-of obj))
+               (when (or (eq (find-class 'solid-tile) (class-of obj))
+                         (eq (find-class 'tile) (class-of obj)))
                  (format t "found tile:~S~%" obj)
                  (return-from get-obj-at-pos-in-layer obj)))) 
         ))
@@ -792,21 +761,6 @@
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
 
-(defparameter *mouse_x* 0)
-(defparameter *mouse_y* 0)
-(defun handle-mouse-down (button_idx)
-  (loop for obj in *input-handlers*
-        do (progn
-             (object-mouse-button obj button_idx t))))
-(defun handle-mouse-up (button_idx)
-  (loop for obj in *input-handlers*
-        do (progn
-             (object-mouse-button obj button_idx nil))))
-
-(defun handle-mouse-motion (x y xrel yrel state)
-  (setf *mouse_x* x)
-  (setf *mouse_y* y))
-
 (defun main (sc cam width height)
   (declare (scene sc) (camera cam) (number width) (number height))
   (format t "width is ~S~%" width)
@@ -879,10 +833,4 @@
              (handle-key-down scancode)))
           (:keyup (:keysym keysym)
            (let ((scancode (sdl2:scancode-value keysym)))
-             (handle-key-up scancode)))
-          (:mousebuttondown (:button button)
-           (handle-mouse-down button))
-          (:mousebuttonup (:button button)
-           (handle-mouse-up button))
-          (:mousemotion (:x x :y y :xrel xrel :yrel yrel :state state)
-           (handle-mouse-motion x y xrel yrel state)))))))
+             (handle-key-up scancode))))))))

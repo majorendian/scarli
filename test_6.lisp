@@ -15,10 +15,8 @@
                            (make-instance 'layer :name "bottom")
                            (make-instance 'layer :name "middle")
                            )
-                 :width 1024
-                 :height 720))
-
-(defparameter *tile-map* (map-from-size (scene-width *testscene*) (scene-height *testscene*) 32 #(1 0)))
+                 :width 640
+                 :height 480))
 
 (defparameter *player* (get-default-player 32 32 "test_spritesheet.png"))
 
@@ -99,8 +97,7 @@
                                       :h 480
                                       :parent *player*))
 
-(map-set-tile *tile-map* 0 0 #(0 0 'solid-tile))
-(map-set-tile *tile-map* 1 0 #(0 0 'solid-tile))
+(display-tiles *testscene* "level_1.map")
 (add-obj-to-scene *testscene* "middle" *player*)
 (add-obj-to-scene *testscene* "middle" (make-square (/ *width* 2) 400))
 (add-obj-to-scene *testscene* "middle" (make-square (/ *width* 2) (- 400 32)))
@@ -109,7 +106,6 @@
 (add-obj-to-scene *testscene* "middle" *pushable-block*)
 (add-obj-to-scene *testscene* "middle" *pushable-block-2*)
 (add-input-handler *player*)
-(make-tiles *testscene* "bottom" 32 "tile_sheet.png" *tile-map*)
 ;(sb-sprof:start-profiling :max-samples 10000)
 (main *testscene* *camera* *width* *height*)
 ;(sb-sprof:stop-profiling)

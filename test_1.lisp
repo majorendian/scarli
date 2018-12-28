@@ -1,8 +1,8 @@
 
 (require :scarli)
 
-(defparameter width 320)
-(defparameter height 240)
+(defparameter *width* 320)
+(defparameter *height* 240)
 
 (defparameter *testobj*
   (make-instance 'scarli:object
@@ -31,5 +31,11 @@
                            (make-instance 'scarli:layer :name "middle")
                            (make-instance 'scarli:layer :name "top"))))
 
+(defparameter *camera* (make-instance 'camera
+                                      :x 0
+                                      :y 0
+                                      :w *width*
+                                      :h *height*))
+
 (scarli:add-obj-to-scene *testscene* "middle" *testobj*)
-(scarli:main *testscene* :width width :height height)
+(scarli:main *testscene* *camera* *width* *height*)

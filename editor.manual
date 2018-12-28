@@ -2,6 +2,7 @@ Arrow keys to move around the tiles
 Space to insert or edit tile
 S to save tilemap to "editor-output.map"
 L to load tilemap from "editor-output.map"
+T to change tile class of the next new tile
 Page up to change layer upwards
 Page down to change layer downwards
 Delete to delete tile in the current layer
