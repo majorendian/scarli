@@ -18,7 +18,7 @@
                  :width 640
                  :height 480))
 
-(defparameter *player* (get-default-player 32 32 "test_spritesheet.png"))
+(defparameter *player* (get-default-player 64 64 "test_spritesheet.png"))
 
 (defclass pushable-block (solid-tile)
   ())
@@ -97,7 +97,8 @@
                                       :h 480
                                       :parent *player*))
 
-(display-tiles *testscene* "level_1.map")
+
+
 (add-obj-to-scene *testscene* "middle" *player*)
 (add-obj-to-scene *testscene* "middle" (make-square (/ *width* 2) 400))
 (add-obj-to-scene *testscene* "middle" (make-square (/ *width* 2) (- 400 32)))
@@ -107,6 +108,7 @@
 (add-obj-to-scene *testscene* "middle" *pushable-block-2*)
 (add-input-handler *player*)
 ;(sb-sprof:start-profiling :max-samples 10000)
+(display-tiles *testscene* "editor-output.map")
 (main *testscene* *camera* *width* *height*)
 ;(sb-sprof:stop-profiling)
 ;(sb-sprof:report :type :flat)

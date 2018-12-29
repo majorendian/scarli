@@ -94,6 +94,7 @@
            *mouse_x*
            *mouse_y*
            main
+           *draw-surface*
            ))
 
 (in-package :scarli)
@@ -103,6 +104,8 @@
 (defparameter *default-font* nil)
 (defparameter *default-font-size* 12)
 (defparameter *MAX_FPS* 60)
+
+(defparameter *draw-surface* nil)
 
 ;list of objects that process input
 (defparameter *input-handlers* (list))
@@ -269,9 +272,6 @@
 (defmacro <- (obj sym val)
   `(setf (-> ,obj ,sym) ,val))
 
-(defmethod object-move ((obj object) (x number) (y number) (dt float))
-  (setf (object-x obj) (round (+ (* x dt) (object-x obj))))
-  (setf (object-y obj) (round (+ (* y dt) (object-y obj)))))
 
 (defmethod object-collide ((obj object) (obj_2 object))
   (when (and (object-collision-enabled obj) (object-collision-enabled obj_2))
@@ -282,12 +282,59 @@
         (setf (object-is-colliding obj_2) is_collision)
         is_collision))))
 
+(defun check-collision (sc obj)
+  (loop for a_layer in (scene-layers sc)
+        do (loop for obj_b in (layer-objects a_layer)
+                 do (progn
+                      (if (eq obj obj_b)
+                          nil
+                          (when (object-collide obj obj_b)
+                            ;(format t "object ~S is colliding~%" obj (object-is-colliding obj))
+                            (object-on-collide  obj obj_b)
+                            (loop for a_script in (object-scripts obj)
+                                  do (funcall (script-on-collide a_script) obj obj_b))))))))
+
+(defun get-obj-at-pos-in-layer (sc layer x y)
+  (loop for obj in (layer-objects (get-layer sc layer))
+        do (progn
+             (when (and (= x (object-x obj)) 
+                        (= y (object-y obj)))
+               (when (or (eq (find-class 'solid-tile) (class-of obj))
+                         (eq (find-class 'tile) (class-of obj)))
+                 (format t "found tile:~S~%" obj)
+                 (return-from get-obj-at-pos-in-layer obj)))) 
+        ))
+
+(defun get-obj-at-coord (exception_obj sc layer x y)
+  (loop for obj in (layer-objects (get-layer sc layer))
+        do (progn
+             ;(format t "x:~S y:~S ~%" x y)
+             (when (and (>= x (object-x obj)) 
+                        (>= y (object-y obj))
+                        (<= x (+ (object-x obj) (object-width obj)))
+                        (<= y (+ (object-y obj) (object-height obj)))
+                        (not (eq obj exception_obj)))
+               ;(format t "object-x:~S object-y:~S~%" (object-x obj) (object-y obj))
+               (return-from get-obj-at-coord obj))) 
+        ))
+
+(defmethod object-move ((obj object) (x number) (y number) (dt float))
+  (let* ((next_x (round (+ (* x dt) (object-x obj))))
+         (next_y (round (+ (* y dt) (object-y obj))))
+         (prev_x (object-x obj))
+         (prev_y (object-y obj))
+         )
+    
+    (setf (object-x obj) next_x)
+    (setf (object-y obj) next_y)
+    (when (object-collision-enabled obj) (check-collision (object-scene obj) obj))
+    ))
 
 (defun get-layer (sc layername)
   (loop for l in (scene-layers sc)
         when (string= (layer-name l) layername)
         do (progn
-             (format t "Found layer with name:~S~%" layername)
+             ;(format t "Found layer with name:~S~%" layername)
              (return l))))
 
 (defmethod object-remove ((obj object))
@@ -457,6 +504,8 @@
   (make-instance tile-class
                  :x x
                  :y y
+                 :w tile-size
+                 :h tile-size
                  :class tile-class
                  :image-path tile-sheet-path
                  :image-rect (make-instance 
@@ -625,26 +674,9 @@
                           (format t "found tile:~S~%" obj)
                           (return-from get-obj-at-pos obj)))))))
 
-(defun get-obj-at-pos-in-layer (sc layer x y)
-  (loop for obj in (layer-objects (get-layer sc layer))
-        do (progn
-             (when (and (= x (object-x obj)) (= y (object-y obj)))
-               (when (or (eq (find-class 'solid-tile) (class-of obj))
-                         (eq (find-class 'tile) (class-of obj)))
-                 (format t "found tile:~S~%" obj)
-                 (return-from get-obj-at-pos-in-layer obj)))) 
-        ))
 
-(defun check-collision (sc obj)
-  (loop for a_layer in (scene-layers sc)
-        do (loop for obj_b in (layer-objects a_layer)
-                 do (progn
-                      (if (eq obj obj_b)
-                          nil
-                          (when (object-collide obj obj_b)
-                            (object-on-collide  obj obj_b)
-                            (loop for a_script in (object-scripts obj)
-                                  do (funcall (script-on-collide a_script) obj obj_b))))))))
+
+
 (defun is-inside-camera (cam obj)
   (if (and (>= (+ (object-width obj) (object-x obj)) (* -1 (camera-x cam)))
            (>= (+ (object-height obj) (object-y obj)) (* -1 (camera-y cam)))
@@ -699,8 +731,8 @@
                                  (when (is-inside-camera cam obj)
                                    (funcall (script-draw a_script) obj dst_surf))))
                       ;finally check parent for collision
-                      (when (object-collision-enabled obj)
-                        (check-collision sc obj))
+                      ;(when (object-collision-enabled obj)
+                        ;(check-collision sc obj))
                       ;then draw objects when they are in the shot of the camera
                       
                       (when (is-inside-camera cam obj)
@@ -777,6 +809,7 @@
             (fps 0)
             (last_ticks (sdl2:get-ticks))
             (sec_surf (sdl2:create-rgb-surface (scene-width sc) (scene-height sc) 32)))
+        (setf *draw-surface* sec_surf)
         (camera-init cam main_surface)
         (ready-all-objects *persistent-scene*)
         (ready-all-objects sc)

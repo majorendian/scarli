@@ -73,31 +73,63 @@
               (setf (rect-y (object-collision-rect self)) (+ 24 (object-y self)))))
   )
 
+(defun intersect-side (rect_1 rect_2)
+  (if *draw-surface*
+      (progn
+        ;(sdl2:fill-rect *draw-surface* rect_1 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
+        ;(sdl2:fill-rect *draw-surface* rect_2 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
+        )
+      (format t "surface is nil~%"))
+  (sdl2:has-intersect rect_1 rect_2))
+
 (defun get-collision-script ()
   (make-instance 'script
-                 :on-collide (lambda (self collider)
-                               (cond
-                                 ;Y collision
-                                 ;from top
-                                 ((> (rect-y (object-collision-rect collider)) (- (+ (rect-h (object-collision-rect self)) (rect-y (object-collision-rect self))) 5))
-                                  (progn
-                                    (setf (object-y self) (- (object-y collider) (+ (rect-h (object-collision-rect self)) (- (object-height self) (rect-h (object-collision-rect self)) ))))))
-                                 ;from bottom
-                                 ((< (- (+ (rect-y (object-collision-rect collider)) (rect-h (object-collision-rect collider))) 5) (rect-y (object-collision-rect self)))
-                                  (progn
-                                    (setf (object-y self) (+ (object-y collider) (rect-h (object-collision-rect self))))))
-                                 ;X collision
-                                 ;from right
-                                 ((< (+ (rect-w (object-collision-rect collider)) (rect-x (object-collision-rect collider))) (+ (rect-x (object-collision-rect self)) (rect-w (object-collision-rect self))))
-                                  (progn
-                                    (setf (object-x self) (+ (object-x collider) (rect-w (object-collision-rect collider))))
-                                    ))
-                                 ;from left
-                                 ((> (+ (rect-x (object-collision-rect collider)) (rect-w (object-collision-rect collider))) (rect-x (object-collision-rect self)))
-                                  (progn
-                                    (setf (object-x self) (- (object-x collider) (object-width self)))  
-                                    ))
-                                 )
+                 :on-collide
+                 (lambda (self collider)
+                   ;bottom
+                   (when (intersect-side (sdl2:make-rect
+                                           (+ (rect-x (object-collision-rect self)) 4) 
+                                           (rect-y (object-collision-rect self))
+                                           (- (rect-w (object-collision-rect self)) 10) 
+                                           2)
+                                         (sdl2:make-rect
+                                           (object-x collider) (- (+ (object-y collider) (object-height collider)) 4)
+                                           (object-width collider) 4))
+                     (setf (object-y self) (+ (rect-h (object-collision-rect self)) (object-y collider)))
+                     (format t "intersect from bottom~%"))
+                   ;top
+                   (when (intersect-side (sdl2:make-rect
+                                           (+ (rect-x (object-collision-rect self)) 4) 
+                                           (+ (rect-y (object-collision-rect self)) 4)
+                                           (- (rect-w (object-collision-rect self)) 10)
+                                           4)
+                                         (sdl2:make-rect
+                                           (object-x collider) (object-y collider)
+                                           (object-width collider) 4))
+                     (setf (object-y self) (- (object-y collider) (object-height collider)))
+                     (format t "intersect from top~%"))
+                   ;left
+                   (when (intersect-side (sdl2:make-rect
+                                           (rect-x (object-collision-rect self)) 
+                                           (+ (object-y self) 4)
+                                           2 (- (object-height self) 8))
+                                         (sdl2:make-rect
+                                           (- (+ (object-width collider) (object-x collider)) 4)
+                                           (object-y collider)
+                                           4 (object-height self)))
+                     (setf (object-x self) (+ (object-width collider) (object-x collider)))
+                     (format t "intersect from left~%"))
+                   ;right
+                   (when (intersect-side (sdl2:make-rect
+                                           (+ (rect-x (object-collision-rect self)) (- (rect-w (object-collision-rect self)) 4))
+                                           (+ (object-y self) 4)
+                                           2 (- (object-height self) 8))
+                                         (sdl2:make-rect
+                                           (object-x collider) (object-y collider)
+                                           4 (object-height collider)))
+                     (setf (object-x self) (+ 2 (- (object-x collider) (object-width collider))))
+                     (format t "intersect from right~%"))
+                   
                                ))
   )
 
