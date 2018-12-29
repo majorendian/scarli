@@ -24,7 +24,8 @@
   ())
 
 (defmethod object-ready ((self pushable-block))
-  (<- self 'dir #(0 0)))
+  (<- self 'dir #(0 0))
+  (setf (object-movable self) t))
 
 
 

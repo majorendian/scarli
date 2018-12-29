@@ -144,6 +144,7 @@
                  :image-rect (make-instance 'rectangle :x 0 :y 0 :w 32 :h 32)
                  :anim-index 0
                  :collision-enabled t
+                 :movable t
                  :collision-rect (make-instance 'rectangle :x x :y y :w 32 :h 8)
                  :scripts (list
                             (get-collision-script)

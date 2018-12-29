@@ -39,6 +39,7 @@
            object-scene
            object-layer
            object-scripts
+           object-movable
            drawable-image-rect
            text
            text-text
@@ -177,6 +178,7 @@
    (layer :accessor object-layer :initarg :layer :initform nil)
    (collision-rect :accessor object-collision-rect :initarg :collision-rect :initform (make-instance 'rectangle))
    (collision-enabled :accessor object-collision-enabled :initarg :collision-enabled :initform nil)
+   (movable :accessor object-movable :initarg :movable :initform nil)
    (on-collide :accessor object-custom-on-collide :initarg :on-collide :initform (lambda (self collider)
                                                                             (declare (ignore self) (ignore collider))))
    (signals :accessor object-signals :initform (make-hash-table))
@@ -327,7 +329,7 @@
     
     (setf (object-x obj) next_x)
     (setf (object-y obj) next_y)
-    (when (object-collision-enabled obj) (check-collision (object-scene obj) obj))
+    ;(when (object-collision-enabled obj) (check-collision (object-scene obj) obj))
     ))
 
 (defun get-layer (sc layername)
@@ -731,8 +733,8 @@
                                  (when (is-inside-camera cam obj)
                                    (funcall (script-draw a_script) obj dst_surf))))
                       ;finally check parent for collision
-                      ;(when (object-collision-enabled obj)
-                        ;(check-collision sc obj))
+                      (when (and (object-movable obj) (object-collision-enabled obj))
+                        (check-collision sc obj))
                       ;then draw objects when they are in the shot of the camera
                       
                       (when (is-inside-camera cam obj)
