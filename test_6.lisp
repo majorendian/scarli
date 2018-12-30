@@ -80,11 +80,12 @@
                                 :tile-class 'interactible
                                 :x (* 14 32)
                                 :y (* 11 32)
-                                :ci 0
+                                :ci 1
                                 :ri 2))
 (setf (interactible-pages *sign*) (list 
-                                    (list "This is a sign.")
-                                    (list "There is nothing written on it yet.")))
+                                    (list "This is a sign. It is old and wooden.")
+                                    (list "There seems to be something written on it,"
+                                          "but it is impossible to make out.")))
 (defun make-square (x y)
   (make-instance 'scarli:object
                  :name "square_one"
