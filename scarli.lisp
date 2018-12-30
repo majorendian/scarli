@@ -656,8 +656,7 @@
 (defun delete-all-tiles-from-scene (sc)
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (layer-objects a_layer)
-                 do (when (or (eq (find-class 'solid-tile) (class-of obj))
-                              (eq (find-class 'tile) (class-of obj)))
+                 do (when (subtypep (type-of obj) 'tile)
                       (object-remove obj))))) 
 
 ;==================================

@@ -17,12 +17,12 @@
                                                )))
 
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
-(defparameter *current-tile-class* 'solid-tile)
+(defparameter *current-tile-class* 'tile)
 (defparameter *available-tile-classes* 
-  (list 'tile 'solid-tile 'interactible))
+  (list 'tile 'solid-tile 'interactible 'pushable-block))
 
 (defun get-save-tile-format (tile)
-  `(make-instance ',(tile-self-class tile)
+  `(make-instance ',(type-of tile)
                   :image-path "tile_sheet.png"
                   :x ,(object-x tile)
                   :y ,(object-y tile)
