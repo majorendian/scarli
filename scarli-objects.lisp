@@ -4,7 +4,11 @@
   (:use :cl :scarli)
   (:export interactible
            interactible-pages
-           pushable-block))
+           pushable-block
+           entrance
+           entrance-next-scene
+           entrance-func-load
+           entrance-next-player-pos))
 
 (in-package :scarli-objects)
 
@@ -17,7 +21,6 @@
 (defmethod object-ready ((self pushable-block))
   (<- self 'dir #(0 0))
   (setf (object-movable self) t))
-
 
 
 (defmethod object-on-collide ((self pushable-block) (collider object))
@@ -47,5 +50,24 @@
   (setf (rect-x (object-collision-rect self)) (object-x self))
   (setf (rect-y (object-collision-rect self)) (object-y self))
   (when (not (object-is-colliding self))
-    (<- self 'dir #(0 0)))
-  )
+    (<- self 'dir #(0 0))))
+
+(defclass entrance (tile)
+  ((next-scene :accessor entrance-next-scene)
+   (func-load :accessor entrance-func-load)
+   (next-player-pos :accessor entrance-next-player-pos :initarg :next-player-pos :initform #(0 0))))
+
+(defmethod object-ready ((self entrance))
+  (setf (object-movable self) t))
+
+(defmethod object-update ((self entrance) dt)
+  (object-move self 0 0 dt))
+
+(defmethod object-on-collide ((self entrance) (obj object))
+  (format t "object is ~S~%" obj)
+  (when (string= "player" (object-name obj))
+    (switch-scene (entrance-next-scene self))
+    (funcall (entrance-func-load self))
+    (setf (object-x obj) (aref (entrance-next-player-pos self) 0))
+    (setf (object-y obj) (aref (entrance-next-player-pos self) 1))
+    ))

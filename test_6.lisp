@@ -9,46 +9,30 @@
 (defparameter *width* 640)
 (defparameter *height* 480)
 
-(defparameter *testscene*
+
+(defun make-default-scene ()
   (make-instance 'scene
                  :layers (list
                            (make-instance 'layer :name "bottom")
                            (make-instance 'layer :name "middle")
+                           (make-instance 'layer :name "top")
                            )
                  :width 640
                  :height 480))
+(defparameter *testscene* (make-default-scene))
 
 (defparameter *player* (get-default-player 64 64 "test_spritesheet.png"))
+(setf (object-z-index *player*) 1)
 
+(defparameter *stairs* (make-tile :tile-sheet-path "tile_sheet.png"
+                                  :tile-size 32
+                                  :tile-class 'entrance
+                                  :ri 0
+                                  :ci 2
+                                  :x (* 14 32)
+                                  :y (* 8 32)))
 
-
-;(defparameter *pushable-block* (make-tile :tile-sheet-path "tile_sheet.png"
-                                          ;:tile-size 32
-                                          ;:tile-class 'pushable-block
-                                          ;:x (* 10 32)
-                                          ;:y (* 10 32)
-                                          ;:ci 0
-                                          ;:ri 2))
-
-;(defparameter *pushable-block-2* (make-tile :tile-sheet-path "tile_sheet.png"
-                                          ;:tile-size 32
-                                          ;:tile-class 'pushable-block
-                                          ;:x (* 12 32)
-                                          ;:y (* 10 32)
-                                          ;:ci 0
-                                          ;:ri 2))
-
-(defparameter *sign* (make-tile :tile-sheet-path "tile_sheet.png"
-                                :tile-size 32
-                                :tile-class 'interactible
-                                :x (* 14 32)
-                                :y (* 11 32)
-                                :ci 1
-                                :ri 2))
-(setf (interactible-pages *sign*) (list 
-                                    (list "This is a sign. It is old and wooden.")
-                                    (list "There seems to be something written on it,"
-                                          "but it is impossible to make out.")))
+(setf (object-collision-enabled *stairs*) t)
 
 (defparameter *camera* (make-instance 'camera
                                       :w 640
@@ -56,15 +40,21 @@
                                       :parent *player*))
 
 
+(defparameter *newscene* (make-default-scene))
+
+(setf (entrance-next-scene *stairs*) *newscene*)
+(setf (entrance-next-player-pos *stairs*) #(64 64))
+(setf (entrance-func-load *stairs*) (lambda ()
+                                      (display-tiles *newscene* "level_2.map")
+                                      (add-obj-to-scene *newscene* "middle" *player*)))
 
 (add-obj-to-scene *testscene* "middle" *player*)
-(add-obj-to-scene *testscene* "middle" *pushable-block*)
-(add-obj-to-scene *testscene* "middle" *pushable-block-2*)
-(add-obj-to-scene *testscene* "middle" *sign*)
+(add-obj-to-scene *testscene* "middle" *stairs*)
+;(add-obj-to-scene *testscene* "middle" *sign*)
 (clear-input-handlers)
 (add-input-handler *player*)
 ;(sb-sprof:start-profiling :max-samples 10000)
-(display-tiles *testscene* "editor-output.map")
+(display-tiles *testscene* "level_1.map")
 (main *testscene* *camera* *width* *height*)
 ;(sb-sprof:stop-profiling)
 ;(sb-sprof:report :type :flat)

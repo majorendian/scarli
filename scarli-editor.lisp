@@ -1,5 +1,7 @@
 
 (require :scarli)
+(ql:quickload :split-sequence)
+(require :split-sequence)
 
 (defpackage scarli-editor
   (:use cl :scarli :scarli-objects)
@@ -131,6 +133,17 @@
             ((sdl2:scancode= scancode :scancode-space) (progn
                                                          (<- self 'color_r #x00)
                                                          (<- self 'modifying_tile nil)))
+            ((sdl2:scancode= scancode :scancode-e)
+             (progn
+               (format t "type of tile~S~%" (-> self 'modifying_tile))
+               (when (subtypep (type-of (-> self 'modifying_tile)) 'scarli-objects:interactible)
+                 (let ((zenity_out (make-string-output-stream))) 
+                   (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640")
+                                       :output zenity_out :error nil)
+                   (setf (interactible-pages (-> self 'modifying_tile))
+                         (split-sequence:split-sequence-if (lambda (item) (position item ";")) 
+                                                                             (get-output-stream-string zenity_out))))
+                 (format t "modyfying text for tile~S~%" (-> self 'modifying_tile)))))
 
             ))
         )))

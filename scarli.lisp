@@ -5,7 +5,8 @@
 
 (defpackage scarli
   (:use :cl)
-  (:export scene
+  (:export switch-scene
+           scene
            scene-layers
            scene-name
            scene-width
@@ -116,6 +117,7 @@
 
 ;list of objects that process input
 (defparameter *input-handlers* (list))
+(defparameter *pause* nil)
 
 ;=======================
 ; Layer and scene class
@@ -836,6 +838,10 @@
   (declare (scene sc) (camera cam) (number width) (number height))
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
+  (defun switch-scene (newscene)
+    (setf *pause* t)
+    (setf sc newscene)
+    (setf *pause* nil))
   (sdl2:with-init (:everything)
     (sdl2-image:init (list :png))
     (sdl2-ttf:init)
@@ -875,14 +881,15 @@
              (sdl2:fill-rect sec_surf nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
 
              ;update and draw the game main scene
-             (update-and-draw-scene sec_surf sc delta cam)
-             (when (camera-parent cam)
-               (camera-center cam sec_surf))
+             (when (not *pause*) 
+               (update-and-draw-scene sec_surf sc delta cam)
+               (when (camera-parent cam)
+                 (camera-center cam sec_surf))
 
-             
-             (sdl2:blit-surface sec_surf nil
-                                main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
-                                                             (camera-w cam) (camera-h cam)))
+
+               (sdl2:blit-surface sec_surf nil
+                                  main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
+                                                               (camera-w cam) (camera-h cam))))
 
              ;update and draw the persitent scene
              ;(update-and-draw-scene main_surface *persistent-scene* delta cam)
