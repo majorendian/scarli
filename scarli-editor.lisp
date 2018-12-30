@@ -2,7 +2,7 @@
 (require :scarli)
 
 (defpackage scarli-editor
-  (:use cl :scarli)
+  (:use cl :scarli :scarli-objects)
   (:export highlight-square
            layer-indicator))
 
@@ -19,7 +19,7 @@
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
 (defparameter *current-tile-class* 'solid-tile)
 (defparameter *available-tile-classes* 
-  (list 'tile 'solid-tile))
+  (list 'tile 'solid-tile 'interactible))
 
 (defun get-save-tile-format (tile)
   `(make-instance ',(tile-self-class tile)
@@ -46,8 +46,7 @@
   (let ((r_list (list)))
     (loop for l in (scene-layers *scene*)
           do (loop for obj in (layer-objects l)
-                   do (when (or (eq (find-class 'solid-tile) (class-of obj))
-                                (eq (find-class 'tile) (class-of obj)))
+                   do (when (subtypep (type-of obj) 'tile)
                         (push (get-save-tile-format obj) r_list))))
     (with-open-file (str output_filename
                          :direction :output
@@ -96,7 +95,7 @@
                    (<- self 'color_r #xff)
                    (<- self 'modifying_tile tile))
                  (progn
-                   (format t "creating tile~%")
+                   (format t "creating tile ~S~%" *current-tile-class*)
                    (setf tile (create-tile :tile-sheet-path "tile_sheet.png"
                                            :tile-size 32
                                            :tile-class *current-tile-class*

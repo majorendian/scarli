@@ -45,6 +45,7 @@
            drawable-image-rect
            text
            text-text
+           input-text
            progressive-text
            paged-text
            multiline-text
@@ -306,8 +307,7 @@
         do (progn
              (when (and (= x (object-x obj)) 
                         (= y (object-y obj)))
-               (when (or (eq (find-class 'solid-tile) (class-of obj))
-                         (eq (find-class 'tile) (class-of obj)))
+               (when (subtypep (type-of obj) 'tile)
                  (format t "found tile:~S~%" obj)
                  (return-from get-obj-at-pos-in-layer obj)))) 
         ))
@@ -699,7 +699,7 @@
         do (loop for obj in (layer-objects a_layer)
                  do (progn
                       (when (and (= x (object-x obj)) (= y (object-y obj)))
-                        (when (eq (find-class 'tile) (class-of obj))
+                        (when (subtypep (type-of obj) 'tile)
                           (format t "found tile:~S~%" obj)
                           (return-from get-obj-at-pos obj)))))))
 
