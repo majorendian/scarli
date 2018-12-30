@@ -96,7 +96,8 @@
                                            (object-x collider) (- (+ (object-y collider) (object-height collider)) 4)
                                            (object-width collider) 4))
                      (setf (object-y self) (+ (rect-h (object-collision-rect self)) (object-y collider)))
-                     (format t "intersect from bottom~%"))
+                    ; (format t "intersect from bottom~%")
+                    )
                    ;top
                    (when (intersect-side (sdl2:make-rect
                                            (+ (rect-x (object-collision-rect self)) 4) 
@@ -107,7 +108,8 @@
                                            (object-x collider) (object-y collider)
                                            (object-width collider) 4))
                      (setf (object-y self) (- (object-y collider) (object-height collider)))
-                     (format t "intersect from top~%"))
+                    ; (format t "intersect from top~%")
+                    )
                    ;left
                    (when (intersect-side (sdl2:make-rect
                                            (rect-x (object-collision-rect self)) 
@@ -118,7 +120,8 @@
                                            (object-y collider)
                                            4 (object-height self)))
                      (setf (object-x self) (+ (object-width collider) (object-x collider)))
-                     (format t "intersect from left~%"))
+                    ; (format t "intersect from left~%")
+                    )
                    ;right
                    (when (intersect-side (sdl2:make-rect
                                            (+ (rect-x (object-collision-rect self)) (- (rect-w (object-collision-rect self)) 4))
@@ -128,7 +131,8 @@
                                            (object-x collider) (object-y collider)
                                            4 (object-height collider)))
                      (setf (object-x self) (+ 2 (- (object-x collider) (object-width collider))))
-                     (format t "intersect from right~%"))
+                     ;(format t "intersect from right~%")
+                     )
                    
                                ))
   )
