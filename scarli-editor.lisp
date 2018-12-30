@@ -126,7 +126,7 @@
                (setf (rect-x (drawable-image-rect (-> self 'modifying_tile)))
                    (- (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))))))
             ((sdl2:scancode= scancode :scancode-right) 
-             (when (< (+ (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))) (sdl2:surface-height (drawable-image (-> self 'modifying_tile))))
+             (when (< (+ (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))) (sdl2:surface-width (drawable-image (-> self 'modifying_tile))))
                (setf (rect-x (drawable-image-rect (-> self 'modifying_tile)))
                    (+ (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))))))
             ((sdl2:scancode= scancode :scancode-space) (progn
