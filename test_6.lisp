@@ -2,7 +2,7 @@
 (require :scarli)
 
 (defpackage scarli-test-6
-  (:use :cl :scarli :scarli-player))
+  (:use :cl :scarli :scarli-player :scarli-objects))
 
 (in-package :scarli-test-6)
 
@@ -74,6 +74,17 @@
                                           :y (* 10 32)
                                           :ci 0
                                           :ri 2))
+
+(defparameter *sign* (make-tile :tile-sheet-path "tile_sheet.png"
+                                :tile-size 32
+                                :tile-class 'interactible
+                                :x (* 14 32)
+                                :y (* 11 32)
+                                :ci 0
+                                :ri 2))
+(setf (interactible-pages *sign*) (list 
+                                    (list "This is a sign.")
+                                    (list "There is nothing written on it yet.")))
 (defun make-square (x y)
   (make-instance 'scarli:object
                  :name "square_one"
@@ -107,6 +118,8 @@
 (add-obj-to-scene *testscene* "middle" (make-square (+ 64 (/ *width* 2)) 400))
 (add-obj-to-scene *testscene* "middle" *pushable-block*)
 (add-obj-to-scene *testscene* "middle" *pushable-block-2*)
+(add-obj-to-scene *testscene* "middle" *sign*)
+(clear-input-handlers)
 (add-input-handler *player*)
 ;(sb-sprof:start-profiling :max-samples 10000)
 (display-tiles *testscene* "editor-output.map")

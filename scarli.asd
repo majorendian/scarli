@@ -10,4 +10,6 @@
   :author "Ernest Deák"
   :license "MIT License"
   :components ((:file "scarli")
-               (:file "scarli-player" :depends-on ("scarli"))))
+               (:file "scarli-objects" :depends-on ("scarli"))
+               (:file "scarli-player" :depends-on ("scarli" "scarli-objects"))
+               ))

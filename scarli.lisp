@@ -40,6 +40,8 @@
            object-layer
            object-scripts
            object-movable
+           object-add-signal-handler
+           object-remove-signal-handler
            drawable-image-rect
            text
            text-text
@@ -90,12 +92,15 @@
            add-input-handler
            get-obj-at-pos
            get-obj-at-pos-in-layer
+           get-obj-at-coord
            clear-input-handlers
            *persistent-scene*
            *mouse_x*
            *mouse_y*
            main
            *draw-surface*
+           ;signals
+           finished-paged-text
            ))
 
 (in-package :scarli)
@@ -420,7 +425,7 @@
                 (if (< (object-get self 'line_index) (length (text-lines self)))
                     (progn
                       (object-set self 'line_index (+ 1 (object-get self 'line_index)))
-                      (object-set self 'line_y (+ *default-font-size* (object-get self 'line_y)))
+                      (object-set self 'line_y (+ 2 *default-font-size* (object-get self 'line_y)))
                       (object-remove-signal-handler (object-get self 'last_line) 'text-finished)
                       (object-set self 'last_line (multiline-text-new-line self (object-get self 'line_y)))
                       (object-add-signal-handler (object-get self 'last_line) 'text-finished (object-get self 'finished-text-handler)))
@@ -447,16 +452,26 @@
     (object-add-child self multi)
     multi))
 
+
 (defmethod object-ready ((self paged-text))
   (format t "readying paged text~%")
   (object-set self 'page_index 0)
   (object-set self 'page_finished nil)
   (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
+  ;create a black rectangle as our text box. this should be replaced by a graphic in the future
+  (object-set self 'black_rect (make-instance 
+                                 'object
+                                 :draw (lambda (self dst_surf)
+                                         (sdl2:fill-rect dst_surf (sdl2:make-rect (object-x self) (object-y self)
+                                                                                  (sdl2:surface-width dst_surf) 64)
+                                                         (sdl2:map-rgb (sdl2:surface-format dst_surf) 0 0 0)))
+                           :z-index -1))
   (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
                              (lambda (multi)
                                (format t "Finished displaying all lines~%")
                                (object-set self 'page_finished t)
-                               )))
+                               ))
+  (add-obj-to-scene *persistent-scene* "bottom" (-> self 'black_rect)))
 
 (defmethod object-input ((self paged-text) scancode pressed)
   (when (and (not pressed) (sdl2:scancode= scancode :scancode-space))
@@ -466,8 +481,12 @@
       (if (<= (object-get self 'page_index) (- (length (paged-text-pages self)) 1))
           (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
           (progn
+            (format t "calling signal handler~%")
             (remove-input-handler self)
-            (object-remove self)))
+            (object-remove self)
+            (object-remove (-> self 'black_rect))
+            (object-fire-signal self 'finished-paged-text)
+            ))
       )))
 
 ;=================
@@ -702,6 +721,7 @@
         (progn
           (object-update child dt)
           (when (is-inside-camera cam child) 
+            (funcall (object-custom-draw child) child dst_surf)
             (object-draw child dst_surf))
           (loop for s in (object-scripts child)
                 do (progn
@@ -726,14 +746,14 @@
                                   (lambda (a b)
                                     (< (object-z-index a) (object-z-index b))))
                  do (progn
+                      ;update and draw children first
+
+                      ;iterate over children
+                      (rec-update-and-draw-children (object-children obj) dst_surf dt cam)
+                      ;then update object
                       (if (object-custom-update obj)
-                          (funcall (object-custom-update obj) obj dt)
-                          ;update and draw children first
-                          (progn
-                            ;iterate over children
-                            (rec-update-and-draw-children (object-children obj) dst_surf dt cam)
-                            ;then update object
-                            (object-update obj dt)))
+                          (funcall (object-custom-update) obj dt)
+                          (object-update obj dt))
                       ;then update object scripts
                       (loop for a_script in (object-scripts obj)
                             do (progn
@@ -753,7 +773,9 @@
 
 (defun update-and-draw-persistent-scene (dst_surf dt)
   (loop for a_layer in (scene-layers *persistent-scene*)
-        do (loop for obj in (layer-objects a_layer)
+        do (loop for obj in (sort (layer-objects a_layer) 
+                                  (lambda (a b)
+                                    (< (object-z-index a) (object-z-index b))))
                  do (progn
                       (loop for a_script in (object-scripts obj)
                             do (progn
@@ -765,10 +787,18 @@
                                                     do (progn
                                                          (funcall (script-update s) child dt)
                                                          (funcall (script-draw s) child dst_surf)))
-                                              (object-update child dt)
-                                              (object-draw child dst_surf)))
-                      (object-update obj dt)
-                      (object-draw obj dst_surf)))))
+                                              (if (object-custom-update child)
+                                                  (funcall (object-custom-update child) child dt)
+                                                  (object-update child dt))
+                                              (if (object-custom-draw child)
+                                                  (funcall (object-custom-draw child) child dst_surf)
+                                                  (object-draw child dst_surf))))
+                      (if (object-custom-update obj)
+                          (funcall (object-custom-update obj) obj dt)
+                          (object-update obj dt))
+                      (if (object-custom-draw obj)
+                          (funcall (object-custom-draw obj) obj dst_surf)
+                          (object-draw obj dst_surf))))))
 
 (defun add-input-handler (obj)
   (push obj *input-handlers*))

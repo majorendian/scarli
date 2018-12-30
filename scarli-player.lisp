@@ -2,7 +2,7 @@
 ;(require :scarli)
 
 (defpackage scarli-player
-  (:use :cl :scarli)
+  (:use :cl :scarli :scarli-objects)
   (:export get-default-player
            get-movement-script
            get-collision-script))
@@ -13,38 +13,74 @@
   (make-instance 
     'script 
     :ready (lambda (self)
-             (object-set self 'dir (vector 0 0))
-             (object-set self 'moving_up nil)
-             (object-set self 'moving_down nil) 
-             (object-set self 'moving_left nil) 
-             (object-set self 'moving_right nil)
-             (object-set self 'speed 100)
+             (<- self 'dir (vector 0 0))
+             (<- self 'look_dir (vector 0 0))
+             (<- self 'process_input t)
+             (<- self 'double_space_input nil)
+             (<- self 'moving_up nil)
+             (<- self 'moving_down nil) 
+             (<- self 'moving_left nil) 
+             (<- self 'moving_right nil)
+             (<- self 'speed 100)
              )
     :input (lambda (self scancode pressed)
-             (if pressed
-                 (cond
-                   ((sdl2:scancode= scancode :scancode-w) (object-set self 'moving_up t))
-                   ((sdl2:scancode= scancode :scancode-s) (object-set self 'moving_down t))
-                   ((sdl2:scancode= scancode :scancode-a) (object-set self 'moving_left t))
-                   ((sdl2:scancode= scancode :scancode-d) (object-set self 'moving_right t)))
-                 (cond
-                   ((sdl2:scancode= scancode :scancode-w) (progn
-                                                            (object-set self 'moving_up nil)
-                                                            (drawable-set-frame self 1)
-                                                            (drawable-set-anim-index self 0)))
-                   ((sdl2:scancode= scancode :scancode-s) (progn
-                                                            (object-set self 'moving_down nil)
-                                                            (drawable-set-frame self 0)
-                                                            (drawable-set-anim-index self 0)))
-                   ((sdl2:scancode= scancode :scancode-a) (progn
-                                                            (object-set self 'moving_left nil)
-                                                            (drawable-set-frame self 1)
-                                                            (drawable-set-anim-index self 4)))
-                   ((sdl2:scancode= scancode :scancode-d) (progn
-                                                            (object-set self 'moving_right nil)
-                                                            (drawable-set-frame self 0)
-                                                            (drawable-set-anim-index self 2)))
-                   )))
+             (when (-> self 'process_input) 
+               (if pressed
+                   (cond
+                     ((sdl2:scancode= scancode :scancode-w) (progn
+                                                              (<- self 'look_dir #(0 -1))
+                                                              (object-set self 'moving_up t)))
+                     ((sdl2:scancode= scancode :scancode-s) (progn
+                                                              (<- self 'look_dir #(0 1))
+                                                              (object-set self 'moving_down t)))
+                     ((sdl2:scancode= scancode :scancode-a) (progn
+                                                              (<- self 'look_dir #(-1 0))
+                                                              (object-set self 'moving_left t)))
+                     ((sdl2:scancode= scancode :scancode-d) (progn
+                                                              (<- self 'look_dir #(1 0))
+                                                              (object-set self 'moving_right t))))
+                   ;key released
+                   (cond
+                     ((sdl2:scancode= scancode :scancode-w) (progn
+                                                              (object-set self 'moving_up nil)
+                                                              (drawable-set-frame self 1)
+                                                              (drawable-set-anim-index self 0)))
+                     ((sdl2:scancode= scancode :scancode-s) (progn
+                                                              (object-set self 'moving_down nil)
+                                                              (drawable-set-frame self 0)
+                                                              (drawable-set-anim-index self 0)))
+                     ((sdl2:scancode= scancode :scancode-a) (progn
+                                                              (object-set self 'moving_left nil)
+                                                              (drawable-set-frame self 1)
+                                                              (drawable-set-anim-index self 4)))
+                     ((sdl2:scancode= scancode :scancode-d) (progn
+                                                              (object-set self 'moving_right nil)
+                                                              (drawable-set-frame self 0)
+                                                              (drawable-set-anim-index self 2)))
+                     ((sdl2:scancode= scancode :scancode-space)
+                      (when (not (-> self 'double_space_input)) 
+                        (let* ((coord_x (+ (+ (object-x self) (/ (object-width self) 2)) (* 24 (aref (-> self 'look_dir) 0))))
+                               (coord_y (+ (+ (object-y self) (/ (object-height self) 2)) (* 24 (aref (-> self 'look_dir) 1))))
+                               (obj (get-obj-at-coord self (object-scene self) (object-layer self) coord_x coord_y)))
+                          (when (subtypep (type-of obj) 'interactible)
+                            (let ((text_box
+                                    (make-instance 'paged-text
+                                                   :pages (interactible-pages obj))))
+                              (add-obj-to-scene *persistent-scene* "top" text_box)
+                              (add-input-handler text_box)
+                              (<- self 'process_input nil)
+                              (object-add-signal-handler text_box 'scarli:finished-paged-text
+                                                         (lambda (tbox)
+                                                           (declare (ignore tbox))
+                                                           (format t "inside signal handler~%")
+                                                           (<- self 'process_input t)
+                                                           (<- self 'double_space_input t)
+                                                           ))
+                            
+                            )))))
+                     ))
+               (<- self 'double_space_input nil))
+             )
     :update (lambda (self dt)
               (object-set self 'dir (vector 0 0))
               (when (object-get self 'moving_down)
