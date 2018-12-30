@@ -456,10 +456,12 @@
   (when (and (not pressed) (sdl2:scancode= scancode :scancode-space))
     (when (and (paged-text-has-focus self) (object-get self 'page_finished))
       (object-remove-child self (object-get self 'last_multiline))
-      (format t "child removed~%")
       (object-set self 'page_index (+ 1 (object-get self 'page_index)))
-      (when (< (object-get self 'page_index) (length (paged-text-pages self)))
-        (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self)))))
+      (if (<= (object-get self 'page_index) (- (length (paged-text-pages self)) 1))
+          (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
+          (progn
+            (remove-input-handler self)
+            (object-remove self)))
       )))
 
 ;=================
@@ -769,7 +771,7 @@
   (setf *input-handlers* (list)))
 
 (defun remove-input-handler (obj)
-  (remove obj *input-handlers* :test 'eq))
+  (setf *input-handlers* (remove obj *input-handlers* :test 'eq)))
 
 (defun handle-key-down (scancode)
   (loop for obj in *input-handlers*
