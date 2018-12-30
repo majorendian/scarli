@@ -39,16 +39,16 @@
 
         )
       ;else just collide and stay in place
-      (collision self collider 
-                 :top (lambda (self collider)
-                        (setf (object-y self) (+ (object-y collider) (object-height collider))))
-                 :bottom (lambda (self collider)
-                           (setf (object-y self) (- (object-y collider) (object-height collider))))
-                 :left (lambda (self collider)
-                         (setf (object-x self) (+ (object-x collider) (object-width collider))))
-                 :right (lambda (self collider)
-                          (setf (object-x self) (- (object-x collider) (object-width collider))))
-                 )
+      (basic-collision self collider 
+                       :top (lambda (self collider)
+                              (setf (object-y self) (+ (object-y collider) (object-height collider))))
+                       :bottom (lambda (self collider)
+                                 (setf (object-y self) (- (object-y collider) (object-height collider))))
+                       :left (lambda (self collider)
+                               (setf (object-x self) (+ (object-x collider) (object-width collider))))
+                       :right (lambda (self collider)
+                                (setf (object-x self) (- (object-x collider) (object-width collider))))
+                       )
       ))
 
 (defmethod object-update ((self pushable-block) dt)

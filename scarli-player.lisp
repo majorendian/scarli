@@ -113,8 +113,8 @@
                    ;left
                    (when (intersect-side (sdl2:make-rect
                                            (rect-x (object-collision-rect self)) 
-                                           (+ (object-y self) 4)
-                                           2 (- (object-height self) 8))
+                                           (+ (rect-y (object-collision-rect self)) 2)
+                                           2 4)
                                          (sdl2:make-rect
                                            (- (+ (object-width collider) (object-x collider)) 4)
                                            (object-y collider)
@@ -125,8 +125,8 @@
                    ;right
                    (when (intersect-side (sdl2:make-rect
                                            (+ (rect-x (object-collision-rect self)) (- (rect-w (object-collision-rect self)) 4))
-                                           (+ (object-y self) 4)
-                                           2 (- (object-height self) 8))
+                                           (+ (rect-y (object-collision-rect self)) 2)
+                                           2 4)
                                          (sdl2:make-rect
                                            (object-x collider) (object-y collider)
                                            4 (object-height collider)))

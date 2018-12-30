@@ -30,7 +30,7 @@
            object-collision-enabled
            object-is-colliding
            object-on-collide
-           collision
+           basic-collision
            object-input
            object-ready
            object-move
@@ -236,7 +236,7 @@
 
 (defmethod object-mouse-button ((self object) btn_index pressed))
 
-(defun collision (self collider &key left right bottom top)
+(defun basic-collision (self collider &key left right bottom top)
   (cond
     ((> (object-x collider) (+ (object-x self) (- (object-width self) 4))) (funcall right self collider))
     ((< (+ (object-x collider) (object-width collider)) (+ (object-x self) 4)) (funcall left self collider))
@@ -409,7 +409,7 @@
     newline_text))
 
 (defmethod object-ready ((self multiline-text))
-  (format t "ready to draw lines~%")
+  ;(format t "ready to draw lines~%")
   (object-set self 'line_index 0)
   (object-set self 'line_y (object-y self))
   (object-set self 'last_line (multiline-text-new-line self (object-get self 'line_y)))
