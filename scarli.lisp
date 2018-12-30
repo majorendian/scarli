@@ -347,13 +347,19 @@
 ; Text class
 ;=================
 (defclass text (object)
-  ((text :accessor text-text :initarg :text :initform " ")))
+  ((text :accessor text-text :initarg :text :initform " ")
+   (black-box :accessor text-black-box :initarg :black-box :initform t)))
 
 (defmethod object-draw ((obj text) dst_surf)
   (when (> (length (text-text obj)) 0) 
     (let ((text_surf (sdl2-ttf:render-text-solid *default-font*
                                                  (text-text obj)
                                                  255 255 255 0)))
+      (when (text-black-box obj)
+        (sdl2:fill-rect dst_surf
+                        (sdl2:make-rect (object-x obj) (object-y obj)
+                                        (sdl2:surface-width text_surf) (sdl2:surface-height text_surf))
+                        (sdl2:map-rgb (sdl2:surface-format text_surf) 0 0 0)))
       (sdl2:blit-surface text_surf nil
                          dst_surf
                          (sdl2:make-rect (object-x obj) (object-y obj)
