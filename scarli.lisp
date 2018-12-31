@@ -834,10 +834,11 @@
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
 
-(defun main (sc cam width height)
+(defun main (title sc cam width height)
   (declare (scene sc) (camera cam) (number width) (number height))
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
+  (format t "title is ~S~%" title)
   (defun switch-scene (newscene)
     (setf *pause* t)
     (setf sc newscene)
@@ -846,7 +847,7 @@
     (sdl2-image:init (list :png))
     (sdl2-ttf:init)
     (setf *default-font* (sdl2-ttf:open-font (truename *default-font-path*) *default-font-size*))
-    (sdl2:with-window (win :title "Scarli" :flags (list :shown) :w width :h height)
+    (sdl2:with-window (win :title title :flags (list :shown) :w width :h height)
       ;setup main window surface and variables for calculating delta and limmiting fps
       (let ((main_surface (sdl2:get-window-surface win))
             (time_seconds (/ (sdl2:get-ticks) 1000.0))

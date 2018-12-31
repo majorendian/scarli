@@ -53,18 +53,20 @@
     (<- self 'dir #(0 0))))
 
 (defclass entrance (tile)
-  ((next-scene :accessor entrance-next-scene)
+  ((id :accessor entrance-id :initarg :id :initform "no-id")
+   (next-scene :accessor entrance-next-scene)
    (func-load :accessor entrance-func-load)
    (next-player-pos :accessor entrance-next-player-pos :initarg :next-player-pos :initform #(0 0))))
 
 (defmethod object-ready ((self entrance))
+  (setf (object-collision-enabled self) t)
   (setf (object-movable self) t))
 
 (defmethod object-update ((self entrance) dt)
+  ;force collision check
   (object-move self 0 0 dt))
 
 (defmethod object-on-collide ((self entrance) (obj object))
-  (format t "object is ~S~%" obj)
   (when (string= "player" (object-name obj))
     (switch-scene (entrance-next-scene self))
     (funcall (entrance-func-load self))

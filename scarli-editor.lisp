@@ -1,6 +1,6 @@
 
 (require :scarli)
-(ql:quickload :split-sequence)
+;(ql:quickload :split-sequence)
 (require :split-sequence)
 
 (defpackage scarli-editor
@@ -24,25 +24,46 @@
   (list 'tile 'solid-tile 'interactible 'pushable-block))
 
 (defun get-save-tile-format (tile)
-  `(make-instance ',(type-of tile)
-                  :image-path "tile_sheet.png"
-                  :x ,(object-x tile)
-                  :y ,(object-y tile)
-                  :w ,(object-width tile)
-                  :h ,(object-height tile)
-                  :image-rect (make-instance 'rectangle
-                                             :x ,(rect-x (drawable-image-rect tile))
-                                             :y ,(rect-y (drawable-image-rect tile))
-                                             :w ,(rect-w (drawable-image-rect tile))
-                                             :h ,(rect-h (drawable-image-rect tile))
-                                             )
-                  :collision-rect (make-instance 'rectangle
-                                                 :x ,(rect-x (object-collision-rect tile))
-                                                 :y ,(rect-y (object-collision-rect tile))
-                                                 :w ,(rect-w (object-collision-rect tile))
-                                                 :h ,(rect-h (object-collision-rect tile))
-                                                 )
-                  :layer ,(object-layer tile)))
+  (cond
+    ((subtypep (type-of tile) 'interactible) `(make-instance ',(type-of tile)
+                                                             :image-path "tile_sheet.png"
+                                                             :x ,(object-x tile)
+                                                             :y ,(object-y tile)
+                                                             :w ,(object-width tile)
+                                                             :h ,(object-height tile)
+                                                             :image-rect (make-instance 'rectangle
+                                                                                        :x ,(rect-x (drawable-image-rect tile))
+                                                                                        :y ,(rect-y (drawable-image-rect tile))
+                                                                                        :w ,(rect-w (drawable-image-rect tile))
+                                                                                        :h ,(rect-h (drawable-image-rect tile))
+                                                                                        )
+                                                             :collision-rect (make-instance 'rectangle
+                                                                                            :x ,(rect-x (object-collision-rect tile))
+                                                                                            :y ,(rect-y (object-collision-rect tile))
+                                                                                            :w ,(rect-w (object-collision-rect tile))
+                                                                                            :h ,(rect-h (object-collision-rect tile))
+                                                                                            )
+                                                             :layer ,(object-layer tile)
+                                                             :pages ',(interactible-pages tile)))
+    ((subtypep (type-of tile) 'tile) `(make-instance ',(type-of tile)
+                                                     :image-path "tile_sheet.png"
+                                                     :x ,(object-x tile)
+                                                     :y ,(object-y tile)
+                                                     :w ,(object-width tile)
+                                                     :h ,(object-height tile)
+                                                     :image-rect (make-instance 'rectangle
+                                                                                :x ,(rect-x (drawable-image-rect tile))
+                                                                                :y ,(rect-y (drawable-image-rect tile))
+                                                                                :w ,(rect-w (drawable-image-rect tile))
+                                                                                :h ,(rect-h (drawable-image-rect tile))
+                                                                                )
+                                                     :collision-rect (make-instance 'rectangle
+                                                                                    :x ,(rect-x (object-collision-rect tile))
+                                                                                    :y ,(rect-y (object-collision-rect tile))
+                                                                                    :w ,(rect-w (object-collision-rect tile))
+                                                                                    :h ,(rect-h (object-collision-rect tile))
+                                                                                    )
+                                                     :layer ,(object-layer tile)))))
 
 (defun save-tiles (output_filename)
   (let ((r_list (list)))
@@ -137,13 +158,17 @@
              (progn
                (format t "type of tile~S~%" (-> self 'modifying_tile))
                (when (subtypep (type-of (-> self 'modifying_tile)) 'scarli-objects:interactible)
-                 (let ((zenity_out (make-string-output-stream))) 
-                   (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640")
-                                       :output zenity_out :error nil)
-                   (setf (interactible-pages (-> self 'modifying_tile))
-                         (split-sequence:split-sequence-if (lambda (item) (position item ";")) 
-                                                                             (get-output-stream-string zenity_out))))
-                 (format t "modyfying text for tile~S~%" (-> self 'modifying_tile)))))
+                 #+:linux (let ((zenity_out (make-string-output-stream))) 
+                            (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640")
+                                                :output zenity_out :error nil)
+                            (let ((result_list
+                                    (list
+                                      (split-sequence:split-sequence-if (lambda (item) (position item ";")) 
+                                                                        (string-trim '(#\Newline) (get-output-stream-string zenity_out))))))
+                              (if (> (length (nth 0 (nth 0 result_list))) 0)
+                                  (setf (interactible-pages (-> self 'modifying_tile)) result_list)
+                                  (format t "text modification canceled~%"))))
+                 )))
 
             ))
         )))

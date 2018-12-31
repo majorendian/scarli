@@ -32,7 +32,6 @@
                                   :x (* 14 32)
                                   :y (* 8 32)))
 
-(setf (object-collision-enabled *stairs*) t)
 
 (defparameter *camera* (make-instance 'camera
                                       :w 640
@@ -55,6 +54,6 @@
 (add-input-handler *player*)
 ;(sb-sprof:start-profiling :max-samples 10000)
 (display-tiles *testscene* "level_1.map")
-(main *testscene* *camera* *width* *height*)
+(main "Prime Garden" *testscene* *camera* *width* *height*)
 ;(sb-sprof:stop-profiling)
 ;(sb-sprof:report :type :flat)
