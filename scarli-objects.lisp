@@ -54,8 +54,9 @@
 
 (defclass entrance (tile)
   ((id :accessor entrance-id :initarg :id :initform "no-id")
-   (next-scene :accessor entrance-next-scene)
-   (func-load :accessor entrance-func-load)
+   (connected-door-id :accessor entrace-connected-door-id :initarg :connected-door-id :initform nil)
+   (next-scene :accessor entrance-next-scene :initarg :next-scene :initform nil)
+   (func-load :accessor entrance-func-load :initarg :func-load :initform (lambda ()))
    (next-player-pos :accessor entrance-next-player-pos :initarg :next-player-pos :initform #(0 0))))
 
 (defmethod object-ready ((self entrance))

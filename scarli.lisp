@@ -841,6 +841,7 @@
   (format t "title is ~S~%" title)
   (defun switch-scene (newscene)
     (setf *pause* t)
+    (ready-all-objects newscene)
     (setf sc newscene)
     (setf *pause* nil))
   (sdl2:with-init (:everything)

@@ -102,6 +102,16 @@
     (sdl2:fill-rect dst_surf right_line (sdl2:map-rgb (sdl2:surface-format dst_surf) (-> self 'color_r) #xff #x00))
     ))
 
+(defun join-semicolon-list (l)
+  (let ((r ""))
+    (loop with i = 0 for e in l
+         do (progn
+              (if (= 0 i)
+                (setf r e)
+                (setf r (concatenate 'string r ";" e)))
+              (setf i (+ 1 i))))
+    r))
+
 (defmethod object-input ((self highlight-square) scancode pressed)
   (if (not (object-get self 'modifying_tile)) 
       (when (not pressed)
@@ -159,7 +169,8 @@
                (format t "type of tile~S~%" (-> self 'modifying_tile))
                (when (subtypep (type-of (-> self 'modifying_tile)) 'scarli-objects:interactible)
                  #+:linux (let ((zenity_out (make-string-output-stream))) 
-                            (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640")
+                            (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640"
+                                                                        (concatenate 'string "--entry-text=" (join-semicolon-list (nth 0 (interactible-pages (-> self 'modifying_tile))))))
                                                 :output zenity_out :error nil)
                             (let ((result_list
                                     (list
@@ -172,6 +183,8 @@
 
             ))
         )))
+
+
 
 (defclass disappearing-text (text)
   ())
@@ -263,4 +276,4 @@
 (add-input-handler *user-cursor*)
 (add-input-handler *layer-indicator*)
 (add-input-handler *tile-class-indicator*)
-(main *scene* *camera* *width* *height*)
+(main "Scarli Level Editor" *scene* *camera* *width* *height*)
