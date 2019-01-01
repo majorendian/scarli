@@ -6,7 +6,10 @@
            interactible-pages
            pushable-block
            entrance
+           entrance-id
+           entrance-connected-door-id
            entrance-next-scene
+           entrance-next-level
            entrance-func-load
            entrance-next-player-pos))
 
@@ -53,11 +56,11 @@
     (<- self 'dir #(0 0))))
 
 (defclass entrance (tile)
-  ((id :accessor entrance-id :initarg :id :initform "no-id")
-   (connected-door-id :accessor entrace-connected-door-id :initarg :connected-door-id :initform nil)
+  ((connected-door-id :accessor entrance-connected-door-id :initarg :connected-door-id :initform nil)
    (next-scene :accessor entrance-next-scene :initarg :next-scene :initform nil)
    (func-load :accessor entrance-func-load :initarg :func-load :initform (lambda ()))
-   (next-player-pos :accessor entrance-next-player-pos :initarg :next-player-pos :initform #(0 0))))
+   (next-player-pos :accessor entrance-next-player-pos :initarg :next-player-pos :initform #(0 0))
+   (next-level :accessor entrance-next-level :initarg :next-level :initform nil))) ;this is something like "level_2.map"
 
 (defmethod object-ready ((self entrance))
   (setf (object-collision-enabled self) t)
@@ -68,9 +71,13 @@
   (object-move self 0 0 dt))
 
 (defmethod object-on-collide ((self entrance) (obj object))
+  (setf (object-collision-enabled self) nil)
   (when (string= "player" (object-name obj))
-    (switch-scene (entrance-next-scene self))
-    (funcall (entrance-func-load self))
-    (setf (object-x obj) (aref (entrance-next-player-pos self) 0))
-    (setf (object-y obj) (aref (entrance-next-player-pos self) 1))
+    ;obj is player
+    (switch-scene (entrance-next-scene self) (entrance-next-level self))
+    ;(funcall (entrance-func-load self))
+    (let ((connected_door (find-object (entrance-next-scene self) (entrance-connected-door-id self))))
+      (when connected_door
+        (setf (object-x obj) (+ (object-x connected_door) (aref (entrance-next-player-pos self) 0)))
+        (setf (object-y obj) (+ (object-y connected_door) (aref (entrance-next-player-pos self) 1)))))
     ))

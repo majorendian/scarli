@@ -11,6 +11,7 @@
            scene-name
            scene-width
            scene-height
+           scene-displayed
            layer
            layer-name
            layer-objects
@@ -93,12 +94,11 @@
            add-obj-to-scene
            add-input-handler
            get-obj-at-pos
+           find-object
            get-obj-at-pos-in-layer
            get-obj-at-coord
            clear-input-handlers
            *persistent-scene*
-           *mouse_x*
-           *mouse_y*
            main
            *draw-surface*
            ;signals
@@ -119,6 +119,8 @@
 (defparameter *input-handlers* (list))
 (defparameter *pause* nil)
 
+(defparameter *level-scene-hash* (make-hash-table :test 'equal))
+
 ;=======================
 ; Layer and scene class
 ;=======================
@@ -127,7 +129,8 @@
   ((name :accessor scene-name :initarg :name)
    (layers :accessor scene-layers :initarg :layers :initform (list))
    (width :accessor scene-width :initarg :width :initform 640)
-   (height :accessor scene-height :initarg :height :initform 480)))
+   (height :accessor scene-height :initarg :height :initform 480)
+   (displayed :accessor scene-displayed :initarg :displayed :initform nil)))
 
 
 
@@ -142,6 +145,7 @@
                            (make-instance 'layer :name "bottom")
                            (make-instance 'layer :name "middle")
                            (make-instance 'layer :name "top"))))
+
 
 ;============
 ; Rectangle
@@ -652,14 +656,22 @@
       (eval expr))))
 
 (defun display-tiles (sc filename)
-  (loop for tile in (load-tiles filename)
-        do (add-obj-to-scene sc (object-layer tile) tile)))
+  (when (not (scene-displayed sc)) 
+    (loop for tile in (load-tiles filename)
+          do (add-obj-to-scene sc (object-layer tile) tile))
+    (setf (scene-displayed sc) t)))
 
 (defun delete-all-tiles-from-scene (sc)
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (layer-objects a_layer)
                  do (when (subtypep (type-of obj) 'tile)
                       (object-remove obj))))) 
+
+(defun find-object (sc search_name)
+  (loop for a_layer in (scene-layers sc)
+        do (loop for obj in (layer-objects a_layer)
+                 when (string= (object-name obj) search_name)
+                 do (return-from find-object obj))))
 
 ;==================================
 ;   Main functions
@@ -839,9 +851,11 @@
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
   (format t "title is ~S~%" title)
-  (defun switch-scene (newscene)
+  (defun switch-scene (newscene tile_map)
     (setf *pause* t)
     (ready-all-objects newscene)
+    (format t "all tiles displayed ~%")
+    (display-tiles newscene tile_map)
     (setf sc newscene)
     (setf *pause* nil))
   (sdl2:with-init (:everything)

@@ -33,19 +33,30 @@
                                   :y (* 8 32)))
 
 
-(defparameter *camera* (make-instance 'camera
-                                      :w 640
-                                      :h 480
-                                      :parent *player*))
+(setf (object-name *stairs*) "floor_1")
+(setf (entrance-connected-door-id *stairs*) "floor_2_1")
+(setf (entrance-next-player-pos *stairs*) #(0 32))
 
 
 (defparameter *newscene* (make-default-scene))
 
 (setf (entrance-next-scene *stairs*) *newscene*)
-(setf (entrance-next-player-pos *stairs*) #(64 64))
-(setf (entrance-func-load *stairs*) (lambda ()
-                                      (display-tiles *newscene* "level_2.map")
-                                      (add-obj-to-scene *newscene* "middle" *player*)))
+(setf (entrance-next-level *stairs*) "level_2.map")
+;(setf (entrance-func-load *stairs*)
+      ;(lambda ()
+        ;(when (not (scene-displayed *newscene*))
+          ;(add-obj-to-scene *newscene* "middle" *player*))
+        ;(display-tiles *newscene* "level_2.map")
+        ;(let ((door (find-object *newscene* "floor_2_1")))
+          ;(format t "found object ~S~%" door)
+          ;(setf (entrance-next-scene door) *testscene*))
+        ;))
+
+
+(defparameter *camera* (make-instance 'camera
+                                      :w 640
+                                      :h 480
+                                      :parent *player*))
 
 (add-obj-to-scene *testscene* "middle" *player*)
 (add-obj-to-scene *testscene* "middle" *stairs*)

@@ -21,10 +21,33 @@
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
 (defparameter *current-tile-class* 'tile)
 (defparameter *available-tile-classes* 
-  (list 'tile 'solid-tile 'interactible 'pushable-block))
+  (list 'tile 'solid-tile 'interactible 'pushable-block 'entrance))
 
 (defun get-save-tile-format (tile)
   (cond
+    ((subtypep (type-of tile) 'entrance) `(make-instance ',(type-of tile)
+                                                             :image-path "tile_sheet.png"
+                                                             :x ,(object-x tile)
+                                                             :y ,(object-y tile)
+                                                             :w ,(object-width tile)
+                                                             :h ,(object-height tile)
+                                                             :image-rect (make-instance 'rectangle
+                                                                                        :x ,(rect-x (drawable-image-rect tile))
+                                                                                        :y ,(rect-y (drawable-image-rect tile))
+                                                                                        :w ,(rect-w (drawable-image-rect tile))
+                                                                                        :h ,(rect-h (drawable-image-rect tile))
+                                                                                        )
+                                                             :collision-rect (make-instance 'rectangle
+                                                                                            :x ,(rect-x (object-collision-rect tile))
+                                                                                            :y ,(rect-y (object-collision-rect tile))
+                                                                                            :w ,(rect-w (object-collision-rect tile))
+                                                                                            :h ,(rect-h (object-collision-rect tile))
+                                                                                            )
+                                                             :layer ,(object-layer tile)
+                                                             :name ,(object-name tile)
+                                                             :connected-door-id ,(entrance-connected-door-id tile)
+                                                             :next-player-pos ,(entrance-next-player-pos tile)
+                                                             ))
     ((subtypep (type-of tile) 'interactible) `(make-instance ',(type-of tile)
                                                              :image-path "tile_sheet.png"
                                                              :x ,(object-x tile)
@@ -167,19 +190,43 @@
             ((sdl2:scancode= scancode :scancode-e)
              (progn
                (format t "type of tile~S~%" (-> self 'modifying_tile))
-               (when (subtypep (type-of (-> self 'modifying_tile)) 'scarli-objects:interactible)
-                 #+:linux (let ((zenity_out (make-string-output-stream))) 
-                            (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640"
-                                                                        (concatenate 'string "--entry-text=" (join-semicolon-list (nth 0 (interactible-pages (-> self 'modifying_tile))))))
-                                                :output zenity_out :error nil)
-                            (let ((result_list
-                                    (list
-                                      (split-sequence:split-sequence-if (lambda (item) (position item ";")) 
-                                                                        (string-trim '(#\Newline) (get-output-stream-string zenity_out))))))
-                              (if (> (length (nth 0 (nth 0 result_list))) 0)
-                                  (setf (interactible-pages (-> self 'modifying_tile)) result_list)
-                                  (format t "text modification canceled~%"))))
-                 )))
+               #+:linux (progn
+                          (cond 
+                            ((subtypep (type-of (-> self 'modifying_tile)) 'interactible)
+                             (let ((zenity_out (make-string-output-stream))) 
+                               (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640"
+                                                                           (concatenate 'string "--entry-text=" (join-semicolon-list (nth 0 (interactible-pages (-> self 'modifying_tile))))))
+                                                   :output zenity_out :error nil)
+                               (let ((result_list
+                                       (list
+                                         (split-sequence:split-sequence-if (lambda (item) (position item ";")) 
+                                                                           (string-trim '(#\Newline) (get-output-stream-string zenity_out))))))
+                                 (if (> (length (nth 0 (nth 0 result_list))) 0)
+                                     (setf (interactible-pages (-> self 'modifying_tile)) result_list)
+                                     (format t "text modification canceled~%")))))
+                            ((subtypep (type-of (-> self 'modifying_tile)) 'entrance)
+                             (let ((yad_out (make-string-output-stream)))
+                               (sb-ext:run-program "/usr/bin/yad"
+                                                   (list "--form"
+                                                         "--field=ID:CBE"  
+                                                         "--field=Connected Door ID:CBE" 
+                                                         "--field=Player X:CBE"
+                                                         "--field=Player Y:CBE"
+                                                         (object-name (-> self 'modifying_tile))
+                                                         (entrance-connected-door-id (-> self 'modifying_tile))
+                                                         (write-to-string (aref (entrance-next-player-pos (-> self 'modifying_tile)) 0))
+                                                         (write-to-string (aref (entrance-next-player-pos (-> self 'modifying_tile)) 1))
+                                                         )
+                                                   :output yad_out :error nil)
+                               (let ((result_list
+                                       (split-sequence:split-sequence-if (lambda (item) (position item "|"))
+                                                                         (string-trim '(#\Newline) (get-output-stream-string yad_out)))))
+                                 (when (> (length result_list) 3)
+                                   (setf (object-name (-> self 'modifying_tile)) (nth 0 result_list))
+                                   (setf (entrance-connected-door-id (-> self 'modifying_tile)) (nth 1 result_list))
+                                   (setf (entrance-next-player-pos (-> self 'modifying_tile)) (vector (parse-integer (nth 2 result_list))
+                                                                                                      (parse-integer (nth 3 result_list))))))))
+                            ))))
 
             ))
         )))
