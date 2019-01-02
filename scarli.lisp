@@ -12,6 +12,8 @@
            scene-width
            scene-height
            scene-displayed
+	   register-scene
+	   fetch-scene
            layer
            layer-name
            layer-objects
@@ -133,6 +135,12 @@
    (displayed :accessor scene-displayed :initarg :displayed :initform nil)))
 
 
+(defun register-scene (sc level_map)
+  (declare (scene sc) (string level_map))
+  (setf (gethash level_map *level-scene-hash*) sc))
+
+(defun fetch-scene (level_map)
+  (gethash level_map *level-scene-hash*))
 
 (defclass layer ()
   ((name :accessor layer-name :initarg :name)
@@ -656,10 +664,8 @@
       (eval expr))))
 
 (defun display-tiles (sc filename)
-  (when (not (scene-displayed sc)) 
-    (loop for tile in (load-tiles filename)
-          do (add-obj-to-scene sc (object-layer tile) tile))
-    (setf (scene-displayed sc) t)))
+  (loop for tile in (load-tiles filename)
+	do (add-obj-to-scene sc (object-layer tile) tile)))
 
 (defun delete-all-tiles-from-scene (sc)
   (loop for a_layer in (scene-layers sc)
@@ -851,13 +857,19 @@
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
   (format t "title is ~S~%" title)
-  (defun switch-scene (newscene tile_map)
-    (setf *pause* t)
-    (ready-all-objects newscene)
-    (format t "all tiles displayed ~%")
-    (display-tiles newscene tile_map)
-    (setf sc newscene)
-    (setf *pause* nil))
+  (defun switch-scene (tile_map)
+    (declare (string tile_map))
+    (let ((newscene (fetch-scene tile_map)))
+      (when newscene
+	(setf *pause* t)
+	(ready-all-objects newscene)
+	(when (not (scene-displayed newscene))
+	  (display-tiles newscene tile_map)
+	  (format t "all tiles displayed ~%")
+	  (setf (scene-displayed newscene) t))
+	(setf sc newscene)
+	(setf *pause* nil))
+      newscene))
   (sdl2:with-init (:everything)
     (sdl2-image:init (list :png))
     (sdl2-ttf:init)

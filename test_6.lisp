@@ -39,28 +39,20 @@
 
 
 (defparameter *newscene* (make-default-scene))
+(add-obj-to-scene *newscene* "middle" *player*)
 
-(setf (entrance-next-scene *stairs*) *newscene*)
 (setf (entrance-next-level *stairs*) "level_2.map")
-;(setf (entrance-func-load *stairs*)
-      ;(lambda ()
-        ;(when (not (scene-displayed *newscene*))
-          ;(add-obj-to-scene *newscene* "middle" *player*))
-        ;(display-tiles *newscene* "level_2.map")
-        ;(let ((door (find-object *newscene* "floor_2_1")))
-          ;(format t "found object ~S~%" door)
-          ;(setf (entrance-next-scene door) *testscene*))
-        ;))
-
 
 (defparameter *camera* (make-instance 'camera
                                       :w 640
                                       :h 480
                                       :parent *player*))
 
+(register-scene *newscene* "level_2.map")
+(register-scene *testscene* "level_1.map")
 (add-obj-to-scene *testscene* "middle" *player*)
 (add-obj-to-scene *testscene* "middle" *stairs*)
-;(add-obj-to-scene *testscene* "middle" *sign*)
+;;(add-obj-to-scene *testscene* "middle" *sign*)
 (clear-input-handlers)
 (add-input-handler *player*)
 ;(sb-sprof:start-profiling :max-samples 10000)

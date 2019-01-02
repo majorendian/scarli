@@ -47,6 +47,7 @@
                                                              :name ,(object-name tile)
                                                              :connected-door-id ,(entrance-connected-door-id tile)
                                                              :next-player-pos ,(entrance-next-player-pos tile)
+							     :next-level ,(entrance-next-level tile)
                                                              ))
     ((subtypep (type-of tile) 'interactible) `(make-instance ',(type-of tile)
                                                              :image-path "tile_sheet.png"
@@ -165,25 +166,25 @@
                (object-remove tile))))
           ))
       (progn
-        ;modifying tile
+					;modifying tile
         (when (not pressed)
           (cond
             ((sdl2:scancode= scancode :scancode-up) 
              (when (> (rect-y (drawable-image-rect (-> self 'modifying_tile))) 0)
                (setf (rect-y (drawable-image-rect (-> self 'modifying_tile)))
-                   (- (rect-y (drawable-image-rect (-> self 'modifying_tile))) (rect-h (drawable-image-rect (-> self 'modifying_tile)))))))
+		     (- (rect-y (drawable-image-rect (-> self 'modifying_tile))) (rect-h (drawable-image-rect (-> self 'modifying_tile)))))))
             ((sdl2:scancode= scancode :scancode-down) 
              (when (< (+ (rect-y (drawable-image-rect (-> self 'modifying_tile))) (rect-h (drawable-image-rect (-> self 'modifying_tile))))  (sdl2:surface-height (drawable-image (-> self 'modifying_tile))))
                (setf (rect-y (drawable-image-rect (-> self 'modifying_tile)))
-                   (+ (rect-y (drawable-image-rect (-> self 'modifying_tile))) (rect-h (drawable-image-rect (-> self 'modifying_tile)))))))
+		     (+ (rect-y (drawable-image-rect (-> self 'modifying_tile))) (rect-h (drawable-image-rect (-> self 'modifying_tile)))))))
             ((sdl2:scancode= scancode :scancode-left) 
              (when (> (rect-x (drawable-image-rect (-> self 'modifying_tile))) 0)
                (setf (rect-x (drawable-image-rect (-> self 'modifying_tile)))
-                   (- (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))))))
+		     (- (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))))))
             ((sdl2:scancode= scancode :scancode-right) 
              (when (< (+ (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))) (sdl2:surface-width (drawable-image (-> self 'modifying_tile))))
                (setf (rect-x (drawable-image-rect (-> self 'modifying_tile)))
-                   (+ (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))))))
+		     (+ (rect-x (drawable-image-rect (-> self 'modifying_tile))) (rect-w (drawable-image-rect (-> self 'modifying_tile)))))))
             ((sdl2:scancode= scancode :scancode-space) (progn
                                                          (<- self 'color_r #x00)
                                                          (<- self 'modifying_tile nil)))
@@ -199,8 +200,8 @@
                                                    :output zenity_out :error nil)
                                (let ((result_list
                                        (list
-                                         (split-sequence:split-sequence-if (lambda (item) (position item ";")) 
-                                                                           (string-trim '(#\Newline) (get-output-stream-string zenity_out))))))
+					(split-sequence:split-sequence-if (lambda (item) (position item ";")) 
+									  (string-trim '(#\Newline) (get-output-stream-string zenity_out))))))
                                  (if (> (length (nth 0 (nth 0 result_list))) 0)
                                      (setf (interactible-pages (-> self 'modifying_tile)) result_list)
                                      (format t "text modification canceled~%")))))
@@ -212,20 +213,23 @@
                                                          "--field=Connected Door ID:CBE" 
                                                          "--field=Player X:CBE"
                                                          "--field=Player Y:CBE"
+							 "--field=Level:CBE"
                                                          (object-name (-> self 'modifying_tile))
                                                          (entrance-connected-door-id (-> self 'modifying_tile))
                                                          (write-to-string (aref (entrance-next-player-pos (-> self 'modifying_tile)) 0))
                                                          (write-to-string (aref (entrance-next-player-pos (-> self 'modifying_tile)) 1))
-                                                         )
+							 (entrance-next-level (-> self 'modifying_tile))
+							 )
                                                    :output yad_out :error nil)
                                (let ((result_list
                                        (split-sequence:split-sequence-if (lambda (item) (position item "|"))
                                                                          (string-trim '(#\Newline) (get-output-stream-string yad_out)))))
-                                 (when (> (length result_list) 3)
+                                 (when (> (length result_list) 4)
                                    (setf (object-name (-> self 'modifying_tile)) (nth 0 result_list))
                                    (setf (entrance-connected-door-id (-> self 'modifying_tile)) (nth 1 result_list))
                                    (setf (entrance-next-player-pos (-> self 'modifying_tile)) (vector (parse-integer (nth 2 result_list))
-                                                                                                      (parse-integer (nth 3 result_list))))))))
+                                                                                                      (parse-integer (nth 3 result_list))))
+				   (setf (entrance-next-level (-> self 'modifying_tile)) (nth 4 result_list))))))
                             ))))
 
             ))

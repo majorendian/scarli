@@ -74,10 +74,10 @@
   (setf (object-collision-enabled self) nil)
   (when (string= "player" (object-name obj))
     ;obj is player
-    (switch-scene (entrance-next-scene self) (entrance-next-level self))
-    ;(funcall (entrance-func-load self))
-    (let ((connected_door (find-object (entrance-next-scene self) (entrance-connected-door-id self))))
-      (when connected_door
-        (setf (object-x obj) (+ (object-x connected_door) (aref (entrance-next-player-pos self) 0)))
-        (setf (object-y obj) (+ (object-y connected_door) (aref (entrance-next-player-pos self) 1)))))
+    (let ((newscene (switch-scene (entrance-next-level self))))
+      ;(funcall (entrance-func-load self))
+      (let ((connected_door (find-object newscene (entrance-connected-door-id self))))
+	(when connected_door
+	  (setf (object-x obj) (+ (object-x connected_door) (aref (entrance-next-player-pos self) 0)))
+	  (setf (object-y obj) (+ (object-y connected_door) (aref (entrance-next-player-pos self) 1))))))
     ))
