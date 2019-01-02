@@ -10,15 +10,6 @@
 (defparameter *height* 480)
 
 
-(defun make-default-scene ()
-  (make-instance 'scene
-                 :layers (list
-                           (make-instance 'layer :name "bottom")
-                           (make-instance 'layer :name "middle")
-                           (make-instance 'layer :name "top")
-                           )
-                 :width 640
-                 :height 480))
 (defparameter *testscene* (make-default-scene))
 
 (defparameter *player* (get-default-player 64 64 "test_spritesheet.png"))
@@ -56,7 +47,7 @@
 (clear-input-handlers)
 (add-input-handler *player*)
 ;(sb-sprof:start-profiling :max-samples 10000)
-(display-tiles *testscene* "level_1.map")
+(display-scene *testscene* "level_1.map")
 (main "Prime Garden" *testscene* *camera* *width* *height*)
 ;(sb-sprof:stop-profiling)
 ;(sb-sprof:report :type :flat)

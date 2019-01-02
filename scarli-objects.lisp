@@ -4,6 +4,7 @@
   (:use :cl :scarli)
   (:export interactible
            interactible-pages
+	   interactible-on-interact
            pushable-block
            entrance
            entrance-id
@@ -17,6 +18,12 @@
 
 (defclass interactible (solid-tile)
   ((pages :accessor interactible-pages :initarg :pages :initform (list (list "Placeholder")))))
+
+
+(defmethod interactible-on-interact ((self interactible) (obj object))
+  ;;obj is player
+  (when (string= (object-name obj) "player")
+    (format t "player interacted with object:~S~%" self)))
 
 (defclass pushable-block (solid-tile)
   ())

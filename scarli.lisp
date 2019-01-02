@@ -6,12 +6,14 @@
 (defpackage scarli
   (:use :cl)
   (:export switch-scene
-           scene
+	   get-current-scene
+	   scene
            scene-layers
            scene-name
            scene-width
            scene-height
            scene-displayed
+	   make-default-scene
 	   register-scene
 	   fetch-scene
            layer
@@ -74,6 +76,7 @@
            create-tile
            load-tiles
            display-tiles
+	   display-scene
            delete-all-tiles-from-scene
            map-from-size
            map-set-tile
@@ -141,6 +144,16 @@
 
 (defun fetch-scene (level_map)
   (gethash level_map *level-scene-hash*))
+
+(defun make-default-scene ()
+  (make-instance 'scene
+                 :layers (list
+                           (make-instance 'layer :name "bottom")
+                           (make-instance 'layer :name "middle")
+                           (make-instance 'layer :name "top")
+                           )
+                 :width 640
+                 :height 480))
 
 (defclass layer ()
   ((name :accessor layer-name :initarg :name)
@@ -667,6 +680,10 @@
   (loop for tile in (load-tiles filename)
 	do (add-obj-to-scene sc (object-layer tile) tile)))
 
+(defun display-scene (sc filename)
+  (display-tiles sc filename)
+  (setf (scene-displayed sc) t))
+
 (defun delete-all-tiles-from-scene (sc)
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (layer-objects a_layer)
@@ -857,6 +874,7 @@
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
   (format t "title is ~S~%" title)
+
   (defun switch-scene (tile_map)
     (declare (string tile_map))
     (let ((newscene (fetch-scene tile_map)))
@@ -870,6 +888,10 @@
 	(setf sc newscene)
 	(setf *pause* nil))
       newscene))
+
+  (defun get-current-scene ()
+    sc)
+  
   (sdl2:with-init (:everything)
     (sdl2-image:init (list :png))
     (sdl2-ttf:init)
