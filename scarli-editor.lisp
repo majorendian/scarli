@@ -1,6 +1,7 @@
 
 (require :scarli)
-;(ql:quickload :split-sequence)
+;;quickload :split-sequence)
+(require :cl-strings)
 (require :split-sequence)
 
 (defpackage scarli-editor
@@ -21,34 +22,58 @@
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
 (defparameter *current-tile-class* 'tile)
 (defparameter *available-tile-classes* 
-  (list 'tile 'solid-tile 'interactible 'pushable-block 'entrance))
+  (list 'tile 'solid-tile 'interactible 'pushable-block 'entrance 'npc))
 
 (defun get-save-tile-format (tile)
   (cond
+    ((subtypep (type-of tile) 'npc) `(make-instance ',(type-of tile)
+						    :image-path ,(drawable-image-path tile)
+						    :x ,(object-x tile)
+						    :y ,(object-y tile)
+						    :w ,(object-width tile)
+						    :h ,(object-height tile)
+						    :image-rect (make-instance 'rectangle
+									       :x ,(rect-x (drawable-image-rect tile))
+									       :y ,(rect-y (drawable-image-rect tile))
+									       :w ,(rect-w (drawable-image-rect tile))
+									       :h ,(rect-h (drawable-image-rect tile))
+									       )
+						    :collision-rect (make-instance 'rectangle
+										   :x ,(rect-x (object-collision-rect tile))
+										   :y ,(rect-y (object-collision-rect tile))
+										   :w ,(rect-w (object-collision-rect tile))
+										   :h ,(rect-h (object-collision-rect tile))
+										   )
+						    :layer ,(object-layer tile)
+						    
+						    
+						    
+						    :pages ',(interactible-pages tile)
+						    ))
     ((subtypep (type-of tile) 'entrance) `(make-instance ',(type-of tile)
-                                                             :image-path "tile_sheet.png"
-                                                             :x ,(object-x tile)
-                                                             :y ,(object-y tile)
-                                                             :w ,(object-width tile)
-                                                             :h ,(object-height tile)
-                                                             :image-rect (make-instance 'rectangle
-                                                                                        :x ,(rect-x (drawable-image-rect tile))
-                                                                                        :y ,(rect-y (drawable-image-rect tile))
-                                                                                        :w ,(rect-w (drawable-image-rect tile))
-                                                                                        :h ,(rect-h (drawable-image-rect tile))
-                                                                                        )
-                                                             :collision-rect (make-instance 'rectangle
-                                                                                            :x ,(rect-x (object-collision-rect tile))
-                                                                                            :y ,(rect-y (object-collision-rect tile))
-                                                                                            :w ,(rect-w (object-collision-rect tile))
-                                                                                            :h ,(rect-h (object-collision-rect tile))
-                                                                                            )
-                                                             :layer ,(object-layer tile)
-                                                             :name ,(object-name tile)
-                                                             :connected-door-id ,(entrance-connected-door-id tile)
-                                                             :next-player-pos ,(entrance-next-player-pos tile)
-							     :next-level ,(entrance-next-level tile)
-                                                             ))
+							 :image-path "tile_sheet.png"
+							 :x ,(object-x tile)
+							 :y ,(object-y tile)
+							 :w ,(object-width tile)
+							 :h ,(object-height tile)
+							 :image-rect (make-instance 'rectangle
+										    :x ,(rect-x (drawable-image-rect tile))
+										    :y ,(rect-y (drawable-image-rect tile))
+										    :w ,(rect-w (drawable-image-rect tile))
+										    :h ,(rect-h (drawable-image-rect tile))
+										    )
+							 :collision-rect (make-instance 'rectangle
+											:x ,(rect-x (object-collision-rect tile))
+											:y ,(rect-y (object-collision-rect tile))
+											:w ,(rect-w (object-collision-rect tile))
+											:h ,(rect-h (object-collision-rect tile))
+											)
+							 :layer ,(object-layer tile)
+							 :name ,(object-name tile)
+							 :connected-door-id ,(entrance-connected-door-id tile)
+							 :next-player-pos ,(entrance-next-player-pos tile)
+							 :next-level ,(entrance-next-level tile)
+							 ))
     ((subtypep (type-of tile) 'interactible) `(make-instance ',(type-of tile)
                                                              :image-path "tile_sheet.png"
                                                              :x ,(object-x tile)
@@ -126,14 +151,36 @@
     (sdl2:fill-rect dst_surf right_line (sdl2:map-rgb (sdl2:surface-format dst_surf) (-> self 'color_r) #xff #x00))
     ))
 
-(defun join-semicolon-list (l)
+(defun join-semicolon-list (l &optional (delim ";"))
   (let ((r ""))
     (loop with i = 0 for e in l
          do (progn
               (if (= 0 i)
                 (setf r e)
-                (setf r (concatenate 'string r ";" e)))
+                (setf r (concatenate 'string r delim e)))
               (setf i (+ 1 i))))
+    r))
+
+(defun join-lol (lol)
+  (let ((r ""))
+    (loop with i = 0 for l in lol
+	  do (progn
+	       (if (= 0 i)
+		   (setf r (join-semicolon-list l (format nil "~%")))
+		   (when (not (string= (format nil "~%") (join-semicolon-list l (format nil "~%"))))
+		     (setf r (concatenate 'string r (format nil ";~%") (join-semicolon-list l (format nil "~%"))))))
+	       (setf i (+ 1 i))))
+    r))
+
+
+(defun split-into-lol (multiline_text)
+  (let* ((r (list))
+	 (tmp_list (cl-strings:split multiline_text ";")))
+    (format t "our tmp list:~S~%" tmp_list)
+    (loop for multi_string in (reverse tmp_list)
+	  do (let ((tmp_list_2 (remove "" (cl-strings:split multi_string "\\n") :test 'equal)))
+	       (when tmp_list_2
+		 (push tmp_list_2 r))))
     r))
 
 (defmethod object-input ((self highlight-square) scancode pressed)
@@ -192,7 +239,25 @@
              (progn
                (format t "type of tile~S~%" (-> self 'modifying_tile))
                #+:linux (progn
-                          (cond 
+                          (cond
+			    ;;editing of npc (must come before 'interactible because it extends it)
+			    ((subtypep (type-of (-> self 'modifying_tile)) 'npc)
+			     (let ((yad_out (make-string-output-stream)))
+			       (sb-ext:run-program "/usr/bin/yad"
+						   (list "--form"
+							 "--field=Spritesheet:CBE"
+							 "--field=Text:TXT"
+							 (drawable-image-path (-> self 'modifying_tile))
+							 (join-lol (interactible-pages (-> self 'modifying_tile))))
+						   :output yad_out :error nil)
+			       (let* ((raw_output (get-output-stream-string yad_out))
+				      (result_list (split-sequence:split-sequence-if (lambda (item) (position item "|"))
+										     (string-trim '(#\Newline) raw_output)) ))
+				 (format t "raw_output:~S~%" raw_output)
+				 (when (> (length result_list) 1)
+				   (setf (drawable-image-path (-> self 'modifying_tile)) (nth 0 result_list))
+				   (setf (interactible-pages (-> self 'modifying_tile)) (split-into-lol (nth 1 result_list)))))))
+			    ;;editing of interactible
                             ((subtypep (type-of (-> self 'modifying_tile)) 'interactible)
                              (let ((zenity_out (make-string-output-stream))) 
                                (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640"
@@ -205,6 +270,7 @@
                                  (if (> (length (nth 0 (nth 0 result_list))) 0)
                                      (setf (interactible-pages (-> self 'modifying_tile)) result_list)
                                      (format t "text modification canceled~%")))))
+			    ;;modifying of entrance
                             ((subtypep (type-of (-> self 'modifying_tile)) 'entrance)
                              (let ((yad_out (make-string-output-stream)))
                                (sb-ext:run-program "/usr/bin/yad"
@@ -230,7 +296,10 @@
                                    (setf (entrance-next-player-pos (-> self 'modifying_tile)) (vector (parse-integer (nth 2 result_list))
                                                                                                       (parse-integer (nth 3 result_list))))
 				   (setf (entrance-next-level (-> self 'modifying_tile)) (nth 4 result_list))))))
-                            ))))
+                            
+			    )
+			  
+			  )))
 
             ))
         )))

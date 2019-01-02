@@ -49,6 +49,7 @@
            object-add-signal-handler
            object-remove-signal-handler
            drawable-image-rect
+	   drawable-image-path
            text
            text-text
            input-text

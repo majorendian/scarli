@@ -63,7 +63,7 @@
 			      (coord_y (+ (+ (object-y self) (/ (object-height self) 2)) (* 24 (aref (-> self 'look_dir) 1))))
 			      (obj (get-obj-at-coord self (get-current-scene) (object-layer self) coord_x coord_y)))
 			 (when (subtypep (type-of obj) 'interactible)
-			   ;;(interactible-on-interact obj self)
+			   (interactible-on-interact obj self)
 			   ;;text box needs to be generated here because we need to make sure
 			   ;;that the double input thing doesn't occur and we need the signal
 			   ;;from the text box

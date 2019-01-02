@@ -1,6 +1,6 @@
 
 (require :scarli)
-
+(require :sb-sprof)
 (defpackage scarli-test-6
   (:use :cl :scarli :scarli-player :scarli-objects))
 
@@ -51,3 +51,4 @@
 (main "Prime Garden" *testscene* *camera* *width* *height*)
 ;(sb-sprof:stop-profiling)
 ;(sb-sprof:report :type :flat)
+

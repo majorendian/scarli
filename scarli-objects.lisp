@@ -5,7 +5,8 @@
   (:export interactible
            interactible-pages
 	   interactible-on-interact
-           pushable-block
+	   npc
+	   pushable-block
            entrance
            entrance-id
            entrance-connected-door-id
@@ -19,11 +20,33 @@
 (defclass interactible (solid-tile)
   ((pages :accessor interactible-pages :initarg :pages :initform (list (list "Placeholder")))))
 
-
 (defmethod interactible-on-interact ((self interactible) (obj object))
   ;;obj is player
+  (format t "in interactible-on-interact~%")
   (when (string= (object-name obj) "player")
     (format t "player interacted with object:~S~%" self)))
+
+(defclass npc (interactible)
+  ())
+
+(defmethod object-ready ((self npc))
+  (<- self 'walking_around nil))
+
+(defmethod interactible-on-interact ((self npc) (obj object))
+  (when (string= (object-name obj) "player")
+    (cond
+      ((> (object-y self) (object-y obj))
+       (progn
+	 (format t "player interacted from the bottom~%")))
+      ((< (object-y self) (object-y obj))
+       (progn
+	 (format t "player interacted from the top~%")))
+      ((> (object-x self) (object-x obj))
+       (progn
+	 (format t "player interacted from right~%")))
+      ((< (object-x self) (object-x obj))
+       (progn
+	 (format t "player interacted from left~%"))))))
 
 (defclass pushable-block (solid-tile)
   ())
