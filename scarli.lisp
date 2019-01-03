@@ -5,111 +5,116 @@
 
 (defpackage scarli
   (:use :cl)
-  (:export switch-scene
-	   get-current-scene
-	   scene
-           scene-layers
-           scene-name
-           scene-width
-           scene-height
-           scene-displayed
-	   make-default-scene
-	   register-scene
-	   fetch-scene
-           layer
-           layer-name
-           layer-objects
-           object
-           object-name
-           object-x
-           object-y
-           object-z-index
-           object-width
-           object-height
-           object-update
-           object-draw
-           object-set
-           <-
-           object-get
-           ->
-           object-collision-rect
-           object-collision-enabled
-           object-is-colliding
-           object-on-collide
-           basic-collision
-           object-input
-           object-ready
-           object-move
-           object-remove
-           object-mouse-button
-           object-scene
-           object-layer
-           object-scripts
-           object-movable
-           object-add-signal-handler
-           object-remove-signal-handler
-           drawable-image-rect
-	   drawable-image-path
-           text
-           text-text
-           input-text
-           progressive-text
-           paged-text
-           multiline-text
-           script
-           script-update
-           script-input
-           script-draw
-           script-name
-           script-ready
-           drawable
-           drawable-advance-frame
-           drawable-animate
-           drawable-image
-           drawable-anim-index
-           drawable-set-frame
-           drawable-set-anim-index
-           drawable-get-frame
-           tile
-           tile-self-class
-           solid-tile
-           make-tile
-           create-tile
-           load-tiles
-           display-tiles
-	   display-scene
-           delete-all-tiles-from-scene
-           map-from-size
-           map-set-tile
-           rectangle
-           rect-x
-           rect-y
-           rect-w
-           rect-h
-           add-2d-vectors
-           sub-2d-vectors
-           normalize-2d-vector
-           camera
-           camera-x
-           camera-y
-           camera-w
-           camera-h
-           camera-surface
-           camera-parent
-           camera-main-surface
-           add-obj-to-scene
-           add-input-handler
-           get-obj-at-pos
-           find-object
-           get-obj-at-pos-in-layer
-           get-obj-at-coord
-           clear-input-handlers
-           *persistent-scene*
-           main
-           *draw-surface*
-           ;signals
-           finished-paged-text
-           ))
+  (:export
+   init-sound-system
+   play-music
+   stop-music
+   switch-scene
+   get-current-scene
+   scene
+   scene-layers
+   scene-name
+   scene-width
+   scene-height
+   scene-displayed
+   make-default-scene
+   register-scene
+   fetch-scene
+   layer
+   layer-name
+   layer-objects
+   object
+   object-name
+   object-x
+   object-y
+   object-z-index
+   object-width
+   object-height
+   object-update
+   object-draw
+   object-set
+   <-
+   object-get
+   ->
+   object-collision-rect
+   object-collision-enabled
+   object-is-colliding
+   object-on-collide
+   basic-collision
+   object-input
+   object-ready
+   object-move
+   object-remove
+   object-mouse-button
+   object-scene
+   object-layer
+   object-scripts
+   object-movable
+   object-add-signal-handler
+   object-remove-signal-handler
+   drawable-image-rect
+   drawable-image-path
+   text
+   text-text
+   input-text
+   progressive-text
+   paged-text
+   multiline-text
+   script
+   script-update
+   script-input
+   script-draw
+   script-name
+   script-ready
+   drawable
+   drawable-advance-frame
+   drawable-animate
+   drawable-image
+   drawable-anim-index
+   drawable-set-frame
+   drawable-set-anim-index
+   drawable-get-frame
+   tile
+   tile-self-class
+   solid-tile
+   make-tile
+   create-tile
+   load-tiles
+   display-tiles
+   display-scene
+   delete-all-tiles-from-scene
+   map-from-size
+   map-set-tile
+   rectangle
+   rect-x
+   rect-y
+   rect-w
+   rect-h
+   add-2d-vectors
+   sub-2d-vectors
+   normalize-2d-vector
+   camera
+   camera-x
+   camera-y
+   camera-w
+   camera-h
+   camera-surface
+   camera-parent
+   camera-main-surface
+   add-obj-to-scene
+   add-input-handler
+   remove-input-handler
+   get-obj-at-pos
+   find-object
+   get-obj-at-pos-in-layer
+   get-obj-at-coord
+   clear-input-handlers
+   *persistent-scene*
+   main
+   *draw-surface*
+					;signals
+   finished-paged-text
+   ))
 
 (in-package :scarli)
 
@@ -409,10 +414,14 @@
 (defclass progressive-text (text)
   ((text-to-render :accessor text-text-to-render :initarg :text :initform " ")
    (current-text :accessor text-text :initform "")
+   (sound :accessor text-sound :initform nil)
+   (sound-file :accessor text-sound-file :initarg :sound-file :initform "dialogue_letter.wav")
    ))
 
 (defmethod object-ready ((self progressive-text))
   (format t "initializing progressive text~%")
+  (setf (text-sound self) (sdl2-mixer:load-wav (text-sound-file self)))
+  (format t "sound object~S~%" (text-sound self))
   (object-set self 'txt_index 1)
   (object-set self 'accum_delta 0))
 
@@ -423,9 +432,11 @@
                                (subseq (text-text-to-render self) 0 (object-get self 'txt_index))
                                (text-text-to-render self)))
     (object-set self 'accum_delta 0)
+    
     (object-set self 'txt_index (+ 1 (object-get self 'txt_index)))
-    (when (= (length (text-text-to-render self)) (length (text-text self)))
-      (object-fire-signal self 'text-finished))
+    (if (= (length (text-text-to-render self)) (length (text-text self)))
+	(object-fire-signal self 'text-finished)
+	(sdl2-mixer:play-channel -1 (text-sound self) 0))
     ))
 
 (defclass multiline-text (object)
@@ -697,6 +708,19 @@
                  when (string= (object-name obj) search_name)
                  do (return-from find-object obj))))
 
+;;music related
+(defun init-sound-system ()
+  (sdl2-mixer:init :mp3)
+  (sdl2-mixer:open-audio 44100 :s16 2 512)
+  (sdl2-mixer:allocate-channels 128))
+
+(defun play-music (filename)
+  (format t "playing file ~S~%" filename)
+  (sdl2-mixer:play-music (sdl2-mixer:load-music filename)))
+
+(defun stop-music ()
+  (sdl2-mixer:halt-music))
+
 ;==================================
 ;   Main functions
 ;==================================
@@ -870,8 +894,8 @@
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
 
-(defun main (title sc cam width height)
-  (declare (scene sc) (camera cam) (number width) (number height))
+(defun main (title sc cam width height &key (on-init (lambda ())))
+  (declare (scene sc) (camera cam) (number width) (number height) (function on-init))
   (format t "width is ~S~%" width)
   (format t "height is ~S~%" height)
   (format t "title is ~S~%" title)
@@ -909,6 +933,10 @@
         (camera-init cam main_surface)
         (ready-all-objects *persistent-scene*)
         (ready-all-objects sc)
+	;;initialize sound system and call callback function in case we want to start some music
+	;;NOTE: play-sound must be called after window initializes, otherwise the music will stop randomly
+	(init-sound-system)
+	(funcall on-init)
         (sdl2:with-event-loop (:method :poll)
           (:idle ()
            (setf fps (+ 1 fps))
@@ -957,6 +985,8 @@
                       (sdl2-ttf:close-font *default-font*)
                       (sdl2-ttf:quit)
                       (sdl2-image:quit)
+		      (sdl2-mixer:close-audio)
+		      (sdl2-mixer:quit)
                       t))
           (:keydown (:keysym keysym)
            (let ((scancode (sdl2:scancode-value keysym)))

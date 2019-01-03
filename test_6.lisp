@@ -48,7 +48,8 @@
 (add-input-handler *player*)
 ;(sb-sprof:start-profiling :max-samples 10000)
 (display-scene *testscene* "level_1.map")
-(main "Prime Garden" *testscene* *camera* *width* *height*)
+(main "Prime Garden" *testscene* *camera* *width* *height*
+      :on-init (lambda () (play-music "cool_nescaline.mp3")))
 ;(sb-sprof:stop-profiling)
 ;(sb-sprof:report :type :flat)
 

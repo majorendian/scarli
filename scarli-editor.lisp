@@ -253,7 +253,6 @@
 			       (let* ((raw_output (get-output-stream-string yad_out))
 				      (result_list (split-sequence:split-sequence-if (lambda (item) (position item "|"))
 										     (string-trim '(#\Newline) raw_output)) ))
-				 (format t "raw_output:~S~%" raw_output)
 				 (when (> (length result_list) 1)
 				   (setf (drawable-image-path (-> self 'modifying_tile)) (nth 0 result_list))
 				   (setf (interactible-pages (-> self 'modifying_tile)) (split-into-lol (nth 1 result_list)))))))
