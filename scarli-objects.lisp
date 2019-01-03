@@ -44,52 +44,52 @@
 			(object-height self)
 			)
 		       (sdl2:make-rect
-			(object-x obj)
-			(object-y obj)
-			(object-width obj)
-			(object-height obj)))
+			(rect-x (object-collision-rect obj))
+			(rect-y (object-collision-rect obj))
+			(- (rect-w (object-collision-rect obj)) 2)
+			(rect-h (object-collision-rect obj))))
        (progn
 	 (format t "player intersected from bottom")
 	 (drawable-set-frame self 0)))
       ;;top
       ((intersect-side (sdl2:make-rect
 			(object-x self)
-			(- 16 (object-y self))
+			(- (object-y self) (object-height self))
 			(object-width self)
 			(object-height self))
 		       (sdl2:make-rect
-			(object-x obj)
-			(object-y obj)
-			(object-width obj)
-			(object-height obj)))
+			(rect-x (object-collision-rect obj))
+			(rect-y (object-collision-rect obj))
+			(rect-w (object-collision-rect obj))
+			(rect-h (object-collision-rect obj))))
        (progn
 	 (format t "player intersected from top")
 	 (drawable-set-frame self 1)))
       ;;left
       ((intersect-side (sdl2:make-rect
-			(- (object-width self) (object-x self))
+			(- (object-x self) (object-width self))
 			(object-y self)
 			(object-width self)
 			(object-height self))
 		       (sdl2:make-rect
-			(object-x obj)
-			(object-y obj)
-			(object-width obj)
-			(object-height obj)))
+			(rect-x (object-collision-rect obj))
+			(rect-y (object-collision-rect obj))
+			(rect-w (object-collision-rect obj))
+			(rect-h (object-collision-rect obj))))
        (progn
 	 (format t "player intersected from left")
 	 (drawable-set-frame self 2)))
       ;;right
       ((intersect-side (sdl2:make-rect
-			(+ 16 (object-width self) (object-x self))
+			(+ (object-width self) (object-x self))
 			(object-y self)
 			(object-width self)
 			(object-height self))
 		       (sdl2:make-rect
-			(object-x obj)
-			(object-y obj)
-			(object-width obj)
-			(object-height obj)))
+			(rect-x (object-collision-rect obj))
+			(rect-y (object-collision-rect obj))
+			(rect-w (object-collision-rect obj))
+			(rect-h (object-collision-rect obj))))
        (progn
 	 (format t "player intersected from right")
 	 (drawable-set-frame self 3))))))

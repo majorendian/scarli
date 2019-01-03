@@ -671,13 +671,13 @@
 (defun intersect-side (rect_1 rect_2)
   (if *draw-surface*
       (progn
-        ;(sdl2:fill-rect *draw-surface* rect_1 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
-        ;(sdl2:fill-rect *draw-surface* rect_2 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
+        ;;(sdl2:fill-rect *draw-surface* rect_1 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
+        ;;(sdl2:fill-rect *draw-surface* rect_2 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
         )
       (format t "surface is nil~%"))
   (sdl2:has-intersect rect_1 rect_2))
 
-(defun collision-sides (self collider &key bottom top left right)
+(defun collision-sides (self collider width height &key bottom top left right)
                    ;bottom
                    (when (intersect-side (sdl2:make-rect
                                            (+ (rect-x (object-collision-rect self)) 4) 
