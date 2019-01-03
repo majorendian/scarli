@@ -41,6 +41,8 @@
    object-is-colliding
    object-on-collide
    basic-collision
+   intersect-side
+   collision-sides
    object-input
    object-ready
    object-move
@@ -421,7 +423,6 @@
 (defmethod object-ready ((self progressive-text))
   (format t "initializing progressive text~%")
   (setf (text-sound self) (sdl2-mixer:load-wav (text-sound-file self)))
-  (format t "sound object~S~%" (text-sound self))
   (object-set self 'txt_index 1)
   (object-set self 'accum_delta 0))
 
@@ -667,6 +668,64 @@
 ; Utility functions
 ;==================================
 
+(defun intersect-side (rect_1 rect_2)
+  (if *draw-surface*
+      (progn
+        ;(sdl2:fill-rect *draw-surface* rect_1 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
+        ;(sdl2:fill-rect *draw-surface* rect_2 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
+        )
+      (format t "surface is nil~%"))
+  (sdl2:has-intersect rect_1 rect_2))
+
+(defun collision-sides (self collider &key bottom top left right)
+                   ;bottom
+                   (when (intersect-side (sdl2:make-rect
+                                           (+ (rect-x (object-collision-rect self)) 4) 
+                                           (rect-y (object-collision-rect self))
+                                           (- (rect-w (object-collision-rect self)) 10) 
+                                           2)
+                                         (sdl2:make-rect
+                                           (object-x collider) (- (+ (object-y collider) (object-height collider)) 4)
+                                           (object-width collider) 4))
+		     (funcall bottom)
+                    ; (format t "intersect from bottom~%")
+                    )
+                   ;top
+                   (when (intersect-side (sdl2:make-rect
+                                           (+ (rect-x (object-collision-rect self)) 4) 
+                                           (+ (rect-y (object-collision-rect self)) 4)
+                                           (- (rect-w (object-collision-rect self)) 10)
+                                           4)
+                                         (sdl2:make-rect
+                                           (object-x collider) (object-y collider)
+                                           (object-width collider) 4))
+		     (funcall top)
+                    ; (format t "intersect from top~%")
+                    )
+                   ;left
+                   (when (intersect-side (sdl2:make-rect
+                                           (rect-x (object-collision-rect self)) 
+                                           (+ (rect-y (object-collision-rect self)) 2)
+                                           2 4)
+                                         (sdl2:make-rect
+                                           (- (+ (object-width collider) (object-x collider)) 4)
+                                           (object-y collider)
+                                           4 (object-height self)))
+		     (funcall left)
+                    ; (format t "intersect from left~%")
+                    )
+                   ;right
+                   (when (intersect-side (sdl2:make-rect
+                                           (+ (rect-x (object-collision-rect self)) (- (rect-w (object-collision-rect self)) 4))
+                                           (+ (rect-y (object-collision-rect self)) 2)
+                                           2 4)
+                                         (sdl2:make-rect
+                                           (object-x collider) (object-y collider)
+                                           4 (object-height collider)))
+		     (funcall right)
+                     ;(format t "intersect from right~%")
+                     ))
+
 (defmethod add-2d-vectors ((vec_1 vector) (vec_2 vector))
   (vector (+ (aref vec_1 0) (aref vec_2 0)) (+ (aref vec_1 1) (aref vec_2 1))))
 
@@ -716,7 +775,8 @@
 
 (defun play-music (filename)
   (format t "playing file ~S~%" filename)
-  (sdl2-mixer:play-music (sdl2-mixer:load-music filename)))
+  (sdl2-mixer:play-music (sdl2-mixer:load-music filename))
+  (sdl2-mixer:volume -1 64))
 
 (defun stop-music ()
   (sdl2-mixer:halt-music))
@@ -971,7 +1031,6 @@
                                                                (camera-w cam) (camera-h cam))))
 
              ;update and draw the persitent scene
-             ;(update-and-draw-scene main_surface *persistent-scene* delta cam)
              (update-and-draw-persistent-scene main_surface delta)
 
              (sdl2:update-window win)

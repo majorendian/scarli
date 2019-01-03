@@ -244,11 +244,14 @@
 			    ((subtypep (type-of (-> self 'modifying_tile)) 'npc)
 			     (let ((yad_out (make-string-output-stream)))
 			       (sb-ext:run-program "/usr/bin/yad"
-						   (list "--form"
-							 "--field=Spritesheet:CBE"
-							 "--field=Text:TXT"
-							 (drawable-image-path (-> self 'modifying_tile))
-							 (join-lol (interactible-pages (-> self 'modifying_tile))))
+						   (list
+						    "--width" "640"
+						    "--height" "240"
+						    "--form"
+						    "--field=Spritesheet:CBE"
+						    "--field=Text:TXT"
+						    (drawable-image-path (-> self 'modifying_tile))
+						    (join-lol (interactible-pages (-> self 'modifying_tile))))
 						   :output yad_out :error nil)
 			       (let* ((raw_output (get-output-stream-string yad_out))
 				      (result_list (split-sequence:split-sequence-if (lambda (item) (position item "|"))

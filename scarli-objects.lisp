@@ -30,23 +30,69 @@
   ())
 
 (defmethod object-ready ((self npc))
-  (<- self 'walking_around nil))
+  (drawable-set-anim-index self 0)
+  (drawable-set-frame self 0))
 
 (defmethod interactible-on-interact ((self npc) (obj object))
   (when (string= (object-name obj) "player")
     (cond
-      ((> (object-y self) (object-y obj))
+      ;;bottom
+      ((intersect-side (sdl2:make-rect
+			(object-x self)
+			(+ (object-y self) (object-height self))
+			(object-width self)
+			(object-height self)
+			)
+		       (sdl2:make-rect
+			(object-x obj)
+			(object-y obj)
+			(object-width obj)
+			(object-height obj)))
        (progn
-	 (format t "player interacted from the bottom~%")))
-      ((< (object-y self) (object-y obj))
+	 (format t "player intersected from bottom")
+	 (drawable-set-frame self 0)))
+      ;;top
+      ((intersect-side (sdl2:make-rect
+			(object-x self)
+			(- 16 (object-y self))
+			(object-width self)
+			(object-height self))
+		       (sdl2:make-rect
+			(object-x obj)
+			(object-y obj)
+			(object-width obj)
+			(object-height obj)))
        (progn
-	 (format t "player interacted from the top~%")))
-      ((> (object-x self) (object-x obj))
+	 (format t "player intersected from top")
+	 (drawable-set-frame self 1)))
+      ;;left
+      ((intersect-side (sdl2:make-rect
+			(- (object-width self) (object-x self))
+			(object-y self)
+			(object-width self)
+			(object-height self))
+		       (sdl2:make-rect
+			(object-x obj)
+			(object-y obj)
+			(object-width obj)
+			(object-height obj)))
        (progn
-	 (format t "player interacted from right~%")))
-      ((< (object-x self) (object-x obj))
+	 (format t "player intersected from left")
+	 (drawable-set-frame self 2)))
+      ;;right
+      ((intersect-side (sdl2:make-rect
+			(+ 16 (object-width self) (object-x self))
+			(object-y self)
+			(object-width self)
+			(object-height self))
+		       (sdl2:make-rect
+			(object-x obj)
+			(object-y obj)
+			(object-width obj)
+			(object-height obj)))
        (progn
-	 (format t "player interacted from left~%"))))))
+	 (format t "player intersected from right")
+	 (drawable-set-frame self 3))))))
 
 (defclass pushable-block (solid-tile)
   ())
