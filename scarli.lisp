@@ -10,6 +10,7 @@
    play-music
    stop-music
    switch-scene
+   goto-scene
    get-current-scene
    scene
    scene-layers
@@ -773,9 +774,11 @@
   (sdl2-mixer:open-audio 44100 :s16 2 512)
   (sdl2-mixer:allocate-channels 128))
 
+(defparameter *current-music* nil)
 (defun play-music (filename)
   (format t "playing file ~S~%" filename)
-  (sdl2-mixer:play-music (sdl2-mixer:load-music filename))
+  (setf *current-music* (sdl2-mixer:load-music filename))
+  (sdl2-mixer:play-music *current-music*)
   (sdl2-mixer:volume -1 64))
 
 (defun stop-music ()
@@ -806,12 +809,12 @@
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (layer-objects a_layer)
                  do (progn
-                      (if (object-custom-ready obj)
-                          (funcall (object-custom-ready obj) obj)
-                          (progn
-                            (loop for child in (object-children obj)
-                                  do (object-ready child))
-                            (object-ready obj)))
+                      (when (object-custom-ready obj)
+                          (funcall (object-custom-ready obj) obj))
+		      (progn
+			(loop for child in (object-children obj)
+			      do (object-ready child))
+			(object-ready obj))
                       (loop for a_script in (object-scripts obj)
                             do (funcall (script-ready a_script) obj))))))
 
@@ -842,8 +845,9 @@
         (progn
           (object-update child dt)
           (when (is-inside-camera cam child) 
-            (funcall (object-custom-draw child) child dst_surf)
-            (object-draw child dst_surf))
+            (if (object-custom-draw child)
+		(funcall (object-custom-draw child) child dst_surf)
+		(object-draw child dst_surf)))
           (loop for s in (object-scripts child)
                 do (progn
                      (funcall (script-update s) child dt)
@@ -960,7 +964,7 @@
   (format t "height is ~S~%" height)
   (format t "title is ~S~%" title)
 
-  (defun switch-scene (tile_map)
+  (defun switch-scene (tile_map &optional (on-switch (lambda ())))
     (declare (string tile_map))
     (let ((newscene (fetch-scene tile_map)))
       (when newscene
@@ -971,9 +975,18 @@
 	  (format t "all tiles displayed ~%")
 	  (setf (scene-displayed newscene) t))
 	(setf sc newscene)
+	(funcall on-switch)
 	(setf *pause* nil))
       newscene))
 
+  (defun goto-scene (newscene)
+    (declare (scene newscene))
+    (setf *pause* t)
+    (ready-all-objects newscene)
+    (setf sc newscene)
+    (setf *pause* nil)
+    newscene)
+  
   (defun get-current-scene ()
     sc)
   
@@ -982,13 +995,14 @@
     (sdl2-ttf:init)
     (setf *default-font* (sdl2-ttf:open-font (truename *default-font-path*) *default-font-size*))
     (sdl2:with-window (win :title title :flags (list :shown) :w width :h height)
-      ;setup main window surface and variables for calculating delta and limmiting fps
+					;setup main window surface and variables for calculating delta and limmiting fps
       (let ((main_surface (sdl2:get-window-surface win))
             (time_seconds (/ (sdl2:get-ticks) 1000.0))
             (max_frame_ticks (/ 1000.0 *MAX_FPS*))
             (fps 0)
             (last_ticks (sdl2:get-ticks))
             (sec_surf (sdl2:create-rgb-surface (scene-width sc) (scene-height sc) 32)))
+	
         (setf *draw-surface* sec_surf)
         (camera-init cam main_surface)
         (ready-all-objects *persistent-scene*)
@@ -999,47 +1013,47 @@
 	(funcall on-init)
         (sdl2:with-event-loop (:method :poll)
           (:idle ()
-           (setf fps (+ 1 fps))
-           ;more variables to calculate delta and setup frame limmiting
-           (let* ((new_time (/ (sdl2:get-ticks) 1000.0))
-                  (delta (- new_time time_seconds))
-                  (target_ticks (+ last_ticks (* fps max_frame_ticks)))
-                  (current_ticks (sdl2:get-ticks)))
-             (setf time_seconds new_time)
-             ;(format t "Target ticks:~S~%" target_ticks)
-             (when (< current_ticks target_ticks)
-               ;when current ticks is less than target ticks
-               (progn
-                 ;calculate how much to delay in between frames
-                 (sdl2:delay (round (- target_ticks current_ticks)))
-                 ;update current_ticks
-                 (setf current_ticks (sdl2:get-ticks))))
+		 (setf fps (+ 1 fps))
+					;more variables to calculate delta and setup frame limmiting
+		 (let* ((new_time (/ (sdl2:get-ticks) 1000.0))
+			(delta (- new_time time_seconds))
+			(target_ticks (+ last_ticks (* fps max_frame_ticks)))
+			(current_ticks (sdl2:get-ticks)))
+		   (setf time_seconds new_time)
+					;(format t "Target ticks:~S~%" target_ticks)
+		   (when (< current_ticks target_ticks)
+					;when current ticks is less than target ticks
+		     (progn
+					;calculate how much to delay in between frames
+		       (sdl2:delay (round (- target_ticks current_ticks)))
+					;update current_ticks
+		       (setf current_ticks (sdl2:get-ticks))))
              
-             ;update logic goes here, the code above should delay the appropriate ammount of time
-             (sdl2:fill-rect main_surface nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
-             (sdl2:fill-rect sec_surf nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
+					;update logic goes here, the code above should delay the appropriate ammount of time
+		   (sdl2:fill-rect main_surface nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
+		   (sdl2:fill-rect sec_surf nil (sdl2:map-rgb (sdl2:surface-format main_surface) #x00 #x00 #x00))
 
-             ;update and draw the game main scene
-             (when (not *pause*) 
-               (update-and-draw-scene sec_surf sc delta cam)
-               (when (camera-parent cam)
-                 (camera-center cam sec_surf))
+					;update and draw the game main scene
+		   (when (not *pause*) 
+		     (update-and-draw-scene sec_surf sc delta cam)
+		     (when (camera-parent cam)
+		       (camera-center cam sec_surf))
 
 
-               (sdl2:blit-surface sec_surf nil
-                                  main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
-                                                               (camera-w cam) (camera-h cam))))
+		     (sdl2:blit-surface sec_surf nil
+					main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
+								     (camera-w cam) (camera-h cam))))
 
-             ;update and draw the persitent scene
-             (update-and-draw-persistent-scene main_surface delta)
+					;update and draw the persitent scene
+		   (update-and-draw-persistent-scene main_surface delta)
 
-             (sdl2:update-window win)
-             ;update fps counter every second along with last ticks
-             (when (>= (- current_ticks last_ticks) 1000)
-               (format t "FPS:~S~%" fps)
-               (setf fps 0)
-               (setf last_ticks (sdl2:get-ticks))
-               )))
+		   (sdl2:update-window win)
+					;update fps counter every second along with last ticks
+		   (when (>= (- current_ticks last_ticks) 1000)
+		     (format t "FPS:~S~%" fps)
+		     (setf fps 0)
+		     (setf last_ticks (sdl2:get-ticks))
+		     )))
           (:quit () (progn
                       (sdl2-ttf:close-font *default-font*)
                       (sdl2-ttf:quit)
@@ -1048,8 +1062,8 @@
 		      (sdl2-mixer:quit)
                       t))
           (:keydown (:keysym keysym)
-           (let ((scancode (sdl2:scancode-value keysym)))
-             (handle-key-down scancode)))
+		    (let ((scancode (sdl2:scancode-value keysym)))
+		      (handle-key-down scancode)))
           (:keyup (:keysym keysym)
-           (let ((scancode (sdl2:scancode-value keysym)))
-             (handle-key-up scancode))))))))
+		  (let ((scancode (sdl2:scancode-value keysym)))
+		    (handle-key-up scancode))))))))
