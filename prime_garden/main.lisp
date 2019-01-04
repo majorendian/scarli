@@ -2,7 +2,8 @@
 (require :scarli)
 
 (defpackage :prime-garden
-  (:use :cl :scarli :scarli-objects :scarli-player))
+  (:use :cl :scarli :scarli-objects :scarli-player)
+  (:export run-game))
 
 (in-package :prime-garden)
 
