@@ -80,6 +80,8 @@
 							  (<- self 'double_space_input t)
 							  ))
 			     (interactible-on-interact obj self)
+			     (when (interactible-on-interact-script obj)
+			       (funcall (interactible-on-interact-script obj) obj self))
 			     )))))
 		    ))
 	      (<- self 'double_space_input nil))

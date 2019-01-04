@@ -5,6 +5,7 @@
   (:export interactible
            interactible-pages
 	   interactible-on-interact
+	   interactible-on-interact-script
 	   npc
 	   pushable-block
            entrance
@@ -18,7 +19,8 @@
 (in-package :scarli-objects)
 
 (defclass interactible (solid-tile)
-  ((pages :accessor interactible-pages :initarg :pages :initform (list (list "Placeholder")))))
+  ((pages :accessor interactible-pages :initarg :pages :initform (list (list "Placeholder")))
+   (on-interact-script :accessor interactible-on-interact-script :initarg :on-interact-script :initform nil)))
 
 (defmethod interactible-on-interact ((self interactible) (obj object))
   ;;obj is player

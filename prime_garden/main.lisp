@@ -27,8 +27,7 @@
 							 (when (and (not pressed) (sdl2:scancode= scancode :scancode-space))
 							   (if (not (-> self 'double_input))
 							       (progn
-								 (format t "in custom input. instruction text ~%")
-								 (switch-scene "level_1.map" (lambda () (play-music "cool_nescaline.mp3")))
+								 (switch-scene "level_4.map" (lambda () (play-music "cool_nescaline.mp3")))
 								 (remove-input-handler self))
 							       (<- self 'double_input nil))))
 						:ready (lambda (self)
@@ -56,13 +55,28 @@
 					;============ Setup player ============
 (defparameter *player* (get-default-player 64 64 "player_spritesheet.png"))
 (add-input-handler *player*)
-					;============ First level setup ==============
-(defparameter *level_1_scene* (make-default-scene))
-(add-obj-to-scene *level_1_scene* "middle" *player*)
-(register-scene *level_1_scene* "level_1.map")
-					;============= Second level setup ============
-(defparameter *level_2_scene* (make-default-scene) )
-(add-obj-to-scene *level_2_scene* "middle" *player*)
-(register-scene  *level_2_scene* "level_2.map")
+;;macro defining levels
+(defmacro define-level (sym level)
+  `(progn
+     (defparameter ,sym (make-default-scene) )
+     (add-obj-to-scene ,sym "middle" *player*)
+     (register-scene ,sym ,level)))
+
+(define-level *level_1_scene* "level_1.map")
+(define-level *level_2_scene* "level_2.map")
+(define-level *level_3_scene* "level_3.map")
+(define-level *level_4_scene* "level_4.map")
+;;=========== level 4 custom interactions =============
+(setf (scene-on-load *level_4_scene*)
+      (lambda (sc)
+	(let ((y_npc (find-object sc "y_in_garden"))
+	      (flower (find-object sc "nice_smelling_flower")))
+	  (setf (interactible-on-interact-script flower)
+		(lambda (self obj)
+		  (declare (ignore obj) (ignore self))
+		  (setf (interactible-pages y_npc)
+			(list
+			 (list "What did I tell you? Wonderfull scent they have.")))))
+	  )))
 
 (main "Prime Garden" *intro-scene* *camera* *width* *height*)

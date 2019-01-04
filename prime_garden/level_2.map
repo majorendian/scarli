@@ -929,8 +929,8 @@
                (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 0 :W 32 :H 32)
                :COLLISION-RECT
                (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 512 :Y 32 :W 32 :H 32)
-               :LAYER "middle" :NAME "floor_2_2" :CONNECTED-DOOR-ID "floor3"
-               :NEXT-PLAYER-POS #(64 64) :NEXT-LEVEL NIL)
+               :LAYER "middle" :NAME "floor_2_2" :CONNECTED-DOOR-ID "floor_3_1"
+               :NEXT-PLAYER-POS #(0 32) :NEXT-LEVEL "level_3.map")
 (MAKE-INSTANCE 'SCARLI-OBJECTS:ENTRANCE :IMAGE-PATH "tile_sheet.png" :X 64 :Y
                64 :W 32 :H 32 :IMAGE-RECT
                (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 0 :W 32 :H 32)

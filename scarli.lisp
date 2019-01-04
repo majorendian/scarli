@@ -18,6 +18,7 @@
    scene-width
    scene-height
    scene-displayed
+   scene-on-load
    make-default-scene
    register-scene
    fetch-scene
@@ -144,7 +145,8 @@
    (layers :accessor scene-layers :initarg :layers :initform (list))
    (width :accessor scene-width :initarg :width :initform 640)
    (height :accessor scene-height :initarg :height :initform 480)
-   (displayed :accessor scene-displayed :initarg :displayed :initform nil)))
+   (displayed :accessor scene-displayed :initarg :displayed :initform nil)
+   (on-load :accessor scene-on-load :initform nil)))
 
 
 (defun register-scene (sc level_map)
@@ -529,7 +531,6 @@
                                (object-set self 'page_finished t)
                                )))
           (progn
-            (format t "calling signal handler~%")
             (remove-input-handler self)
             (object-remove self)
             (object-remove (-> self 'black_rect))
@@ -983,6 +984,8 @@
 	  (setf (scene-displayed newscene) t))
 	(setf sc newscene)
 	(funcall on-switch)
+	(when (scene-on-load sc)
+	  (funcall (scene-on-load sc) sc))
 	(setf *pause* nil))
       newscene))
 
@@ -1057,7 +1060,7 @@
 		   (sdl2:update-window win)
 					;update fps counter every second along with last ticks
 		   (when (>= (- current_ticks last_ticks) 1000)
-		     (format t "FPS:~S~%" fps)
+		     ;;(format t "FPS:~S~%" fps)
 		     (setf fps 0)
 		     (setf last_ticks (sdl2:get-ticks))
 		     )))

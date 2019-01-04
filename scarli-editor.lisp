@@ -27,6 +27,7 @@
 (defun get-save-tile-format (tile)
   (cond
     ((subtypep (type-of tile) 'npc) `(make-instance ',(type-of tile)
+						    :name ,(object-name tile)
 						    :image-path ,(drawable-image-path tile)
 						    :x ,(object-x tile)
 						    :y ,(object-y tile)
@@ -75,6 +76,7 @@
 							 :next-level ,(entrance-next-level tile)
 							 ))
     ((subtypep (type-of tile) 'interactible) `(make-instance ',(type-of tile)
+							     :name ,(object-name tile)
                                                              :image-path "tile_sheet.png"
                                                              :x ,(object-x tile)
                                                              :y ,(object-y tile)
@@ -248,30 +250,38 @@
 						    "--width" "640"
 						    "--height" "240"
 						    "--form"
+						    "--field=ID:CBE"
 						    "--field=Spritesheet:CBE"
 						    "--field=Text:TXT"
+						    (object-name (-> self 'modifying_tile))
 						    (drawable-image-path (-> self 'modifying_tile))
 						    (join-lol (interactible-pages (-> self 'modifying_tile))))
 						   :output yad_out :error nil)
 			       (let* ((raw_output (get-output-stream-string yad_out))
 				      (result_list (split-sequence:split-sequence-if (lambda (item) (position item "|"))
 										     (string-trim '(#\Newline) raw_output)) ))
-				 (when (> (length result_list) 1)
-				   (setf (drawable-image-path (-> self 'modifying_tile)) (nth 0 result_list))
-				   (setf (interactible-pages (-> self 'modifying_tile)) (split-into-lol (nth 1 result_list)))))))
+				 (when (> (length result_list) 2)
+				   (setf (object-name (-> self 'modifying_tile)) (nth 0 result_list))
+				   (setf (drawable-image-path (-> self 'modifying_tile)) (nth 1 result_list))
+				   (setf (interactible-pages (-> self 'modifying_tile)) (split-into-lol (nth 2 result_list)))))))
 			    ;;editing of interactible
                             ((subtypep (type-of (-> self 'modifying_tile)) 'interactible)
-                             (let ((zenity_out (make-string-output-stream))) 
-                               (sb-ext:run-program "/usr/bin/zenity" (list "--entry" "--width" "640"
-                                                                           (concatenate 'string "--entry-text=" (join-semicolon-list (nth 0 (interactible-pages (-> self 'modifying_tile))))))
-                                                   :output zenity_out :error nil)
+                             (let ((yad_out (make-string-output-stream))) 
+                               (sb-ext:run-program "/usr/bin/yad"
+						   (list
+						    "--width" "640"
+						    "--form"
+						    "--field=ID:CBE"
+						    "--field=Text:TXT"
+						    (object-name (-> self 'modifying_tile))
+						    (join-lol (interactible-pages (-> self 'modifying_tile))))
+                                                   :output yad_out :error nil)
                                (let ((result_list
-                                       (list
-					(split-sequence:split-sequence-if (lambda (item) (position item ";")) 
-									  (string-trim '(#\Newline) (get-output-stream-string zenity_out))))))
-                                 (if (> (length (nth 0 (nth 0 result_list))) 0)
-                                     (setf (interactible-pages (-> self 'modifying_tile)) result_list)
-                                     (format t "text modification canceled~%")))))
+				       (split-sequence:split-sequence-if (lambda (item) (position item "|")) 
+									 (string-trim '(#\Newline) (get-output-stream-string yad_out)))))
+                                 (when (> (length result_list) 1)
+				   (setf (interactible-pages (-> self 'modifying_tile)) (split-into-lol (nth 1 result_list)))
+				   (setf (object-name (-> self 'modifying_tile)) (nth 0 result_list))))))
 			    ;;modifying of entrance
                             ((subtypep (type-of (-> self 'modifying_tile)) 'entrance)
                              (let ((yad_out (make-string-output-stream)))
