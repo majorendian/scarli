@@ -78,5 +78,13 @@
 			(list
 			 (list "What did I tell you? Wonderfull scent they have.")))))
 	  )))
-
+(define-level *level_5_scene* "level_5.map")
+;;============ level 5 custom ===============
+(setf (scene-on-load *level_5_scene*)
+      (lambda (sc)
+	(let ((reset_button (find-object sc "reset_button")))
+	  (setf (interactible-on-interact-script reset_button)
+		(lambda (self obj)
+		  (declare (ignore self) (ignore obj))
+		  (reload-scene "level_5.map" (list *player* reset_button)))))))
 (main "Prime Garden" *intro-scene* *camera* *width* *height*)

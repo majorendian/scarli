@@ -10,6 +10,7 @@
    play-music
    stop-music
    switch-scene
+   reload-scene
    goto-scene
    get-current-scene
    scene
@@ -756,9 +757,11 @@
     (let ((expr (read str)))
       (eval expr))))
 
-(defun display-tiles (sc filename)
+(defun display-tiles (sc filename &optional (exception_list_names (list)))
   (loop for tile in (load-tiles filename)
-	do (add-obj-to-scene sc (object-layer tile) tile)))
+	do (progn
+	     (when (not (member (object-name tile) exception_list_names :test 'equal))
+	       (add-obj-to-scene sc (object-layer tile) tile)))))
 
 (defun display-scene (sc filename)
   (display-tiles sc filename)
@@ -812,6 +815,17 @@
             do (object-ready child))
       (object-ready obj))
     ))
+
+(defun reload-scene (level &optional (excluded_objects (list)))
+  (loop for a_layer in (scene-layers (fetch-scene level))
+	do (loop for obj in (layer-objects a_layer)
+		 do (progn
+		      (when (not (member obj excluded_objects :test 'eq))
+			(object-remove obj)))))
+  (setf (scene-displayed (fetch-scene level)) nil)
+  (let ((object_names (loop for obj in excluded_objects collect (object-name obj))))
+    (format t "ignoring:~S~%" object_names)
+    (display-tiles (fetch-scene level) level object_names)))
 
 (defmethod ready-all-objects ((sc scene))
   (loop for a_layer in (scene-layers sc)
