@@ -520,7 +520,14 @@
       (object-remove-child self (object-get self 'last_multiline))
       (object-set self 'page_index (+ 1 (object-get self 'page_index)))
       (if (<= (object-get self 'page_index) (- (length (paged-text-pages self)) 1))
-          (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
+          (progn
+	    (<- self 'page_finished nil)
+	    (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
+	    (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
+                             (lambda (multi)
+                               (format t "Finished displaying all lines~%")
+                               (object-set self 'page_finished t)
+                               )))
           (progn
             (format t "calling signal handler~%")
             (remove-input-handler self)
