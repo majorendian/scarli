@@ -327,6 +327,8 @@
       (let ((is_collision (sdl2:has-intersect o1_rect o2_rect)))
         (setf (object-is-colliding obj) is_collision)
         (setf (object-is-colliding obj_2) is_collision)
+	(sdl2:free-rect o1_rect)
+	(sdl2:free-rect o2_rect)
         is_collision))))
 
 (defun check-collision (sc obj)
@@ -399,15 +401,17 @@
     (let ((text_surf (sdl2-ttf:render-text-solid *default-font*
                                                  (text-text obj)
                                                  255 255 255 0)))
-      (when (text-black-box obj)
-        (sdl2:fill-rect dst_surf
-                        (sdl2:make-rect (object-x obj) (object-y obj)
-                                        (sdl2:surface-width text_surf) (sdl2:surface-height text_surf))
-                        (sdl2:map-rgb (sdl2:surface-format text_surf) 0 0 0)))
-      (sdl2:blit-surface text_surf nil
-                         dst_surf
-                         (sdl2:make-rect (object-x obj) (object-y obj)
-                                         (sdl2:surface-width text_surf) (sdl2:surface-height text_surf)))
+      (let ((text_rect (sdl2:make-rect (object-x obj) (object-y obj)
+				       (sdl2:surface-width text_surf) (sdl2:surface-height text_surf))))
+	(when (text-black-box obj)
+		(sdl2:fill-rect dst_surf
+				text_rect
+				(sdl2:map-rgb (sdl2:surface-format text_surf) 0 0 0)))
+	
+	(sdl2:blit-surface text_surf nil
+			   dst_surf
+			   text_rect)
+	(sdl2:free-rect text_rect))
       )))
 
 
@@ -502,14 +506,16 @@
   (object-set self 'page_index 0)
   (object-set self 'page_finished nil)
   (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
-  ;create a black rectangle as our text box. this should be replaced by a graphic in the future
+					;create a black rectangle as our text box. this should be replaced by a graphic in the future
   (object-set self 'black_rect (make-instance 
-                                 'object
-                                 :draw (lambda (self dst_surf)
-                                         (sdl2:fill-rect dst_surf (sdl2:make-rect (object-x self) (object-y self)
-                                                                                  (sdl2:surface-width dst_surf) 64)
-                                                         (sdl2:map-rgb (sdl2:surface-format dst_surf) 0 0 0)))
-                           :z-index -1))
+				'object
+				:draw (lambda (self dst_surf)
+					(let ((b_rect (sdl2:make-rect (object-x self) (object-y self)
+								      (sdl2:surface-width dst_surf) 64) ))
+					  (sdl2:fill-rect dst_surf b_rect
+							  (sdl2:map-rgb (sdl2:surface-format dst_surf) 0 0 0))
+					  (sdl2:free-rect b_rect)))
+				:z-index -1))
   (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
                              (lambda (multi)
                                (format t "Finished displaying all lines~%")
@@ -568,9 +574,13 @@
 (defmethod object-on-collide ((self object) (obj_b drawable)))
 
 (defmethod object-draw ((dr drawable) dst_surf)
-  (sdl2:blit-surface (drawable-image dr) (rect-to-sdl2-rect (drawable-image-rect dr))
-                     dst_surf (sdl2:make-rect (object-x dr) (object-y dr)
-                                              (object-width dr) (object-height dr))) )
+  (let ((object_rect (rect-to-sdl2-rect (drawable-image-rect dr)))
+	(dst_rect (sdl2:make-rect (object-x dr) (object-y dr)
+				  (object-width dr) (object-height dr)) ))
+    (sdl2:blit-surface (drawable-image dr) object_rect 
+		       dst_surf dst_rect)
+    (sdl2:free-rect object_rect)
+    (sdl2:free-rect dst_rect)))
 
 (defclass tile (drawable)
   ((self-class :accessor tile-self-class :initarg :class :initform 'tile)))
@@ -685,7 +695,13 @@
         ;;(sdl2:fill-rect *draw-surface* rect_2 (sdl2:map-rgb (sdl2:surface-format *draw-surface*) #xff #x00 #xff))
         )
       (format t "surface is nil~%"))
-  (sdl2:has-intersect rect_1 rect_2))
+  (let ((has_intersect (sdl2:has-intersect rect_1 rect_2)))
+    ;;free the rectangles after use
+    (sdl2:free-rect rect_1)
+    (sdl2:free-rect rect_2)
+    ;;return value
+    has_intersect)
+  )
 
 (defun collision-sides (self collider width height &key bottom top left right)
                    ;bottom
@@ -1065,16 +1081,17 @@
 		     (update-and-draw-scene sec_surf sc delta cam)
 		     (when (camera-parent cam)
 		       (camera-center cam sec_surf))
-		     (sdl2:blit-surface sec_surf nil
-					main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
-								     (camera-w cam) (camera-h cam))))
+		     (let ((camera_rect (sdl2:make-rect (camera-x cam) (camera-y cam)
+							(camera-w cam) (camera-h cam))))
+		       (sdl2:blit-surface sec_surf nil main_surface camera_rect)
+		       (sdl2:free-rect camera_rect)))
 					;update and draw the persitent scene
 		   (update-and-draw-persistent-scene main_surface delta)
 		   (sdl2:update-window win)
 		   (sdl2:free-surface sec_surf)
 					;update fps counter every second along with last ticks
 		   (when (>= (- current_ticks last_ticks) 1000)
-		     ;; (format t "FPS:~S~%" fps)
+		     (format t "FPS:~S~%" fps)
 		     (setf fps 0)
 		     (setf last_ticks (sdl2:get-ticks))
 		     )))
