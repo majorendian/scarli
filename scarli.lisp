@@ -899,7 +899,7 @@
                       (rec-update-and-draw-children (object-children obj) dst_surf dt cam)
                       ;then update object
                       (if (object-custom-update obj)
-                          (funcall (object-custom-update) obj dt)
+                          (funcall (object-custom-update obj) obj dt)
                           (object-update obj dt))
                       ;then update object scripts
                       (loop for a_script in (object-scripts obj)
@@ -1025,9 +1025,10 @@
             (max_frame_ticks (/ 1000.0 *MAX_FPS*))
             (fps 0)
             (last_ticks (sdl2:get-ticks))
-            (sec_surf (sdl2:create-rgb-surface (scene-width sc) (scene-height sc) 32)))
+            ;;(sec_surf (sdl2:create-rgb-surface (scene-width sc) (scene-height sc) 32))
+	    )
 	
-        (setf *draw-surface* sec_surf)
+        
         (camera-init cam main_surface)
         (ready-all-objects *persistent-scene*)
         (ready-all-objects sc)
@@ -1039,10 +1040,12 @@
           (:idle ()
 		 (setf fps (+ 1 fps))
 					;more variables to calculate delta and setup frame limmiting
-		 (let* ((new_time (/ (sdl2:get-ticks) 1000.0))
+		 (let* ((sec_surf (sdl2:create-rgb-surface (scene-width sc) (scene-height sc) 32))
+			(new_time (/ (sdl2:get-ticks) 1000.0))
 			(delta (- new_time time_seconds))
 			(target_ticks (+ last_ticks (* fps max_frame_ticks)))
 			(current_ticks (sdl2:get-ticks)))
+		   (setf *draw-surface* sec_surf)
 		   (setf time_seconds new_time)
 					;(format t "Target ticks:~S~%" target_ticks)
 		   (when (< current_ticks target_ticks)
@@ -1062,16 +1065,13 @@
 		     (update-and-draw-scene sec_surf sc delta cam)
 		     (when (camera-parent cam)
 		       (camera-center cam sec_surf))
-
-
 		     (sdl2:blit-surface sec_surf nil
 					main_surface (sdl2:make-rect (camera-x cam) (camera-y cam)
 								     (camera-w cam) (camera-h cam))))
-
 					;update and draw the persitent scene
 		   (update-and-draw-persistent-scene main_surface delta)
-
 		   (sdl2:update-window win)
+		   (sdl2:free-surface sec_surf)
 					;update fps counter every second along with last ticks
 		   (when (>= (- current_ticks last_ticks) 1000)
 		     ;;(format t "FPS:~S~%" fps)

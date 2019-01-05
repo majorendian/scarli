@@ -10,7 +10,6 @@
 					;======= Intro scene ======
 (defparameter *intro-scene* (make-default-scene))
 (defparameter *width* 640) (defparameter *height* 480)
-(defparameter *camera* (make-instance 'camera :x 0 :y 0 :w *width* :h *height*))
 ;;intro image
 (defparameter *intro-image* (make-instance 'drawable
 					   :image-path "intro_image.png"
@@ -28,7 +27,7 @@
 							 (when (and (not pressed) (sdl2:scancode= scancode :scancode-space))
 							   (if (not (-> self 'double_input))
 							       (progn
-								 (switch-scene "level_1.map" (lambda () (play-music "cool_nescaline.mp3") ))
+								 (switch-scene "level_6.map" (lambda () (play-music "cool_nescaline.mp3") ))
 								 (remove-input-handler self))
 							       (<- self 'double_input nil))))
 						:ready (lambda (self)
@@ -55,6 +54,7 @@
 (add-obj-to-scene *intro-scene* "middle" *intro-text*)
 					;============ Setup player ============
 (defparameter *player* (get-default-player 64 64 "player_spritesheet.png"))
+(defparameter *camera* (make-instance 'camera :x 0 :y 0 :w *width* :h *height* :parent *player*))
 (add-input-handler *player*)
 ;;macro defining levels
 (defmacro define-level (sym level)
@@ -90,4 +90,8 @@
 (setf (scene-on-load *level_5_scene*) #'reset-button-func)
 ;;============ level 6 =======================
 (define-level *level_6_scene* "level_6.map")
+(define-level *level_7_scene* "level_7.map")
+;;============ level 7 =======================
+(setf (scene-width *level_7_scene*) 1024)
+(setf (scene-height *level_7_scene*) 768)
 (main "Prime Garden" *intro-scene* *camera* *width* *height*)

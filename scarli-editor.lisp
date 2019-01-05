@@ -16,8 +16,9 @@
                                      :layers (list
                                                (make-instance 'layer :name "bottom")
                                                (make-instance 'layer :name "middle")
-                                               (make-instance 'layer :name "top")
-                                               )))
+                                               (make-instance 'layer :name "top"))
+				     :width 1024
+				     :height 768))
 
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
 (defparameter *current-tile-class* 'tile)
