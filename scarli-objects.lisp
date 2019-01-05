@@ -33,6 +33,7 @@
   ())
 
 (defmethod object-ready ((self interactible-animated))
+  (drawable-set-frame self 0)
   (drawable-set-anim-index self 0))
 
 (defmethod object-update ((self interactible-animated) (dt float))
