@@ -1074,7 +1074,7 @@
 		   (sdl2:free-surface sec_surf)
 					;update fps counter every second along with last ticks
 		   (when (>= (- current_ticks last_ticks) 1000)
-		     ;;(format t "FPS:~S~%" fps)
+		     ;; (format t "FPS:~S~%" fps)
 		     (setf fps 0)
 		     (setf last_ticks (sdl2:get-ticks))
 		     )))

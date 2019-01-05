@@ -6,6 +6,7 @@
            interactible-pages
 	   interactible-on-interact
 	   interactible-on-interact-script
+	   interactible-animated
 	   npc
 	   pushable-block
            entrance
@@ -27,6 +28,15 @@
   (format t "in interactible-on-interact~%")
   (when (string= (object-name obj) "player")
     (format t "player interacted with object:~S~%" self)))
+
+(defclass interactible-animated (interactible)
+  ())
+
+(defmethod object-ready ((self interactible-animated))
+  (drawable-set-anim-index self 0))
+
+(defmethod object-update ((self interactible-animated) (dt float))
+  (drawable-animate self dt))
 
 (defclass npc (interactible)
   ())

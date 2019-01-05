@@ -23,7 +23,7 @@
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
 (defparameter *current-tile-class* 'tile)
 (defparameter *available-tile-classes* 
-  (list 'tile 'solid-tile 'interactible 'pushable-block 'entrance 'npc))
+  (list 'tile 'solid-tile 'interactible 'interactible-animated 'pushable-block 'entrance 'npc))
 
 (defun get-save-tile-format (tile)
   (cond
@@ -78,7 +78,7 @@
 							 ))
     ((subtypep (type-of tile) 'interactible) `(make-instance ',(type-of tile)
 							     :name ,(object-name tile)
-                                                             :image-path "tile_sheet.png"
+                                                             :image-path ,(drawable-image-path tile)
                                                              :x ,(object-x tile)
                                                              :y ,(object-y tile)
                                                              :w ,(object-width tile)
@@ -273,15 +273,19 @@
 						    "--width" "640"
 						    "--form"
 						    "--field=ID:CBE"
+						    "--field=Spritesheet:CBE"
 						    "--field=Text:TXT"
 						    (object-name (-> self 'modifying_tile))
+						    (drawable-image-path (-> self 'modifying_tile))
 						    (join-lol (interactible-pages (-> self 'modifying_tile))))
                                                    :output yad_out :error nil)
                                (let ((result_list
 				       (split-sequence:split-sequence-if (lambda (item) (position item "|")) 
 									 (string-trim '(#\Newline) (get-output-stream-string yad_out)))))
-                                 (when (> (length result_list) 1)
-				   (setf (interactible-pages (-> self 'modifying_tile)) (split-into-lol (nth 1 result_list)))
+                                 (when (> (length result_list) 2)
+				   (setf (interactible-pages (-> self 'modifying_tile)) (split-into-lol (nth 2 result_list)))
+				   (drawable-set-frame (-> self 'modifying_tile) 0)
+				   (setf (drawable-image-path (-> self 'modifying_tile)) (nth 1 result_list))
 				   (setf (object-name (-> self 'modifying_tile)) (nth 0 result_list))))))
 			    ;;modifying of entrance
                             ((subtypep (type-of (-> self 'modifying_tile)) 'entrance)
