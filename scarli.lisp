@@ -369,14 +369,10 @@
 
 (defmethod object-move ((obj object) (x number) (y number) (dt float))
   (let* ((next_x (round (+ (* x dt) (object-x obj))))
-         (next_y (round (+ (* y dt) (object-y obj))))
-         (prev_x (object-x obj))
-         (prev_y (object-y obj))
-         )
+         (next_y (round (+ (* y dt) (object-y obj)))))
     
     (setf (object-x obj) next_x)
     (setf (object-y obj) next_y)
-    ;(when (object-collision-enabled obj) (check-collision (object-scene obj) obj))
     ))
 
 (defun get-layer (sc layername)
@@ -447,10 +443,11 @@
     (object-set self 'txt_index (+ 1 (object-get self 'txt_index)))
     (if (= (length (text-text-to-render self)) (length (text-text self)))
 	(progn
-	  ;;free loaded chunk and fire signal
+	  ;;free loaded chunk
 	  (when (not (-> self 'freed_chunk))
 	    (sdl2-mixer:free-chunk (text-sound self))
 	    (<- self 'freed_chunk t))
+	  ;;fire signal
 	  (object-fire-signal self 'text-finished))
 	(sdl2-mixer:play-channel -1 (text-sound self) 0))
     ))
@@ -525,6 +522,7 @@
 				:z-index -1))
   (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
                              (lambda (multi)
+			       (declare (ignore multi))
                                (format t "Finished displaying all lines~%")
                                (object-set self 'page_finished t)
                                ))
@@ -540,10 +538,11 @@
 	    (<- self 'page_finished nil)
 	    (object-set self 'last_multiline (paged-text-create-multiline self (nth (object-get self 'page_index) (paged-text-pages self))))
 	    (object-add-signal-handler (object-get self 'last_multiline) 'multiline-text-finished
-                             (lambda (multi)
-                               (format t "Finished displaying all lines~%")
-                               (object-set self 'page_finished t)
-                               )))
+				       (lambda (multi)
+					 (declare (ignore multi))
+					 (format t "Finished displaying all lines~%")
+					 (object-set self 'page_finished t)
+					 )))
           (progn
             (remove-input-handler self)
             (object-remove self)
@@ -710,7 +709,7 @@
     has_intersect)
   )
 
-(defun collision-sides (self collider width height &key bottom top left right)
+(defun collision-sides (self collider &key bottom top left right)
                    ;bottom
                    (when (intersect-side (sdl2:make-rect
                                            (+ (rect-x (object-collision-rect self)) 4) 
@@ -1013,6 +1012,8 @@
              (loop for a_script in (object-scripts obj)
                    do (funcall (script-input a_script) obj scancode nil)))))
 
+(declaim (ftype (function (string &optional function) scene) switch-scene))
+(declaim (ftype (function (scene) scene) goto-scene))
 (defun main (title sc cam width height &key (on-init (lambda ())))
   (declare (scene sc) (camera cam) (number width) (number height) (function on-init))
   (format t "width is ~S~%" width)

@@ -100,6 +100,7 @@
 	(let ((hidden_switch (find-object sc "hidden_flower_switch")))
 	  (setf (interactible-on-interact-script hidden_switch)
 		(lambda (self obj)
+		  (declare (ignore obj))
 		  (when (not (-> self 'interaction_occured))
 		    (let ((hidden_stairs (make-tile :tile-sheet-path "tile_sheet.png"
 						    :tile-size 32
