@@ -1,0 +1,10 @@
+*.fasl
+#.*#
+*~
+*.xcf
+*.ogg
+.#*
+'#*#'
+*.core
+prime_garden
+dist/*
