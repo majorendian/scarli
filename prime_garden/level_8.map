@@ -1,0 +1,129 @@
+(list
+(MAKE-INSTANCE 'SCARLI-OBJECTS:ENTRANCE :IMAGE-PATH "tile_sheet.png" :X 64 :Y
+               32 :W 32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 0 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 32 :W 32 :H 32) :LAYER
+               "middle" :NAME "floor_8_1" :CONNECTED-DOOR-ID "floor_7_2"
+               :NEXT-PLAYER-POS #(0 32) :NEXT-LEVEL "level_7.map")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 0 :Y 0 :W 32
+               :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 0 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 0 :Y 32 :W 32
+               :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 32 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 0 :Y 64 :W 32
+               :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 64 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 0 :Y 96 :W 32
+               :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 96 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 32 :Y 96 :W
+               32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 96 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 64 :Y 96 :W
+               32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 96 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 96 :Y 96 :W
+               32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 96 :Y 96 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 128 :Y 96 :W
+               32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 128 :Y 96 :W 32 :H 32)
+               :LAYER "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 128 :Y 64 :W
+               32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 128 :Y 64 :W 32 :H 32)
+               :LAYER "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 128 :Y 32 :W
+               32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 128 :Y 32 :W 32 :H 32)
+               :LAYER "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 128 :Y 0 :W
+               32 :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 128 :Y 0 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 96 :Y 0 :W 32
+               :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 96 :Y 0 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 64 :Y 0 :W 32
+               :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 0 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:SOLID-TILE :IMAGE-PATH "tile_sheet.png" :X 32 :Y 0 :W 32
+               :H 32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 0 :W 32 :H 32) :LAYER
+               "middle")
+(MAKE-INSTANCE 'SCARLI:TILE :IMAGE-PATH "tile_sheet.png" :X 32 :Y 32 :W 32 :H
+               32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 0 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 32 :W 32 :H 32) :LAYER
+               "bottom")
+(MAKE-INSTANCE 'SCARLI:TILE :IMAGE-PATH "tile_sheet.png" :X 64 :Y 32 :W 32 :H
+               32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 0 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 32 :W 32 :H 32) :LAYER
+               "bottom")
+(MAKE-INSTANCE 'SCARLI:TILE :IMAGE-PATH "tile_sheet.png" :X 32 :Y 64 :W 32 :H
+               32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 0 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 32 :Y 64 :W 32 :H 32) :LAYER
+               "bottom")
+(MAKE-INSTANCE 'SCARLI:TILE :IMAGE-PATH "tile_sheet.png" :X 64 :Y 64 :W 32 :H
+               32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 0 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 64 :Y 64 :W 32 :H 32) :LAYER
+               "bottom")
+(MAKE-INSTANCE 'SCARLI:TILE :IMAGE-PATH "tile_sheet.png" :X 96 :Y 64 :W 32 :H
+               32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 0 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 96 :Y 64 :W 32 :H 32) :LAYER
+               "bottom")
+(MAKE-INSTANCE 'SCARLI:TILE :IMAGE-PATH "tile_sheet.png" :X 96 :Y 32 :W 32 :H
+               32 :IMAGE-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 0 :Y 0 :W 32 :H 32)
+               :COLLISION-RECT
+               (MAKE-INSTANCE 'SCARLI:RECTANGLE :X 96 :Y 32 :W 32 :H 32) :LAYER
+               "bottom")
+)

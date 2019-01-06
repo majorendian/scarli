@@ -1,6 +1,6 @@
 
-(require :scarli)
-(require :sb-sprof)
+;(require :scarli)
+;(require :sb-sprof)
 
 (defpackage :prime-garden
   (:use :cl :scarli :scarli-objects :scarli-player)
@@ -114,6 +114,7 @@
 		    (setf (entrance-connected-door-id hidden_stairs) "floor_8_1")
 		    ;;add the stairs to scene afterwards
 		    (add-obj-to-scene sc "middle" hidden_stairs)))))))
+(define-level *level_8_scene* "level_8.map")
 ;;(sb-sprof:start-profiling :mode :alloc)
 (main "Prime Garden" *intro-scene* *camera* *width* *height*)
 ;;(sb-sprof:stop-profiling)
