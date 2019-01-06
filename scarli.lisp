@@ -7,6 +7,7 @@
   (:use :cl)
   (:export
    init-sound-system
+   play-sound-effect
    play-music
    stop-music
    switch-scene
@@ -432,7 +433,8 @@
   (format t "initializing progressive text~%")
   (setf (text-sound self) (sdl2-mixer:load-wav (text-sound-file self)))
   (object-set self 'txt_index 1)
-  (object-set self 'accum_delta 0))
+  (object-set self 'accum_delta 0)
+  (<- self 'freed_chunk nil))
 
 (defmethod object-update ((self progressive-text) (dt float))
   (object-set self 'accum_delta (+ (object-get self 'accum_delta) dt))
@@ -444,7 +446,12 @@
     
     (object-set self 'txt_index (+ 1 (object-get self 'txt_index)))
     (if (= (length (text-text-to-render self)) (length (text-text self)))
-	(object-fire-signal self 'text-finished)
+	(progn
+	  ;;free loaded chunk and fire signal
+	  (when (not (-> self 'freed_chunk))
+	    (sdl2-mixer:free-chunk (text-sound self))
+	    (<- self 'freed_chunk t))
+	  (object-fire-signal self 'text-finished))
 	(sdl2-mixer:play-channel -1 (text-sound self) 0))
     ))
 
@@ -800,6 +807,16 @@
   (sdl2-mixer:init :mp3)
   (sdl2-mixer:open-audio 44100 :s16 2 512)
   (sdl2-mixer:allocate-channels 128))
+
+(defparameter *sound-effects* (make-hash-table))
+(defun play-sound-effect (filename)
+  (maphash (lambda (channel chunk)
+	     (when (= 0 (sdl2-mixer:playing channel))
+	       (sdl2-mixer:free-chunk chunk)
+	       (remhash channel *sound-effects*))) *sound-effects*)
+  (let* ((chunk (sdl2-mixer:load-wav filename))
+	 (channel (sdl2-mixer:play-channel -1 chunk 0)))
+    (setf (gethash channel *sound-effects*) chunk)))
 
 (defparameter *current-music* nil)
 (defun play-music (filename)

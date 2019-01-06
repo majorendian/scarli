@@ -28,7 +28,7 @@
 							 (when (and (not pressed) (sdl2:scancode= scancode :scancode-space))
 							   (if (not (-> self 'double_input))
 							       (progn
-								 (switch-scene "level_1.map" (lambda () (play-music "cool_nescaline.mp3") ))
+								 (switch-scene "level_7.map" (lambda () (play-music "cool_nescaline.mp3") ))
 								 (remove-input-handler self))
 							       (<- self 'double_input nil))))
 						:ready (lambda (self)
@@ -100,20 +100,25 @@
 	(let ((hidden_switch (find-object sc "hidden_flower_switch")))
 	  (setf (interactible-on-interact-script hidden_switch)
 		(lambda (self obj)
-		  (let ((hidden_stairs (make-tile :tile-sheet-path "tile_sheet.png"
-						  :tile-size 32
-						  :tile-class 'entrance
-						  :x (* 20 32)
-						  :y (* 10 32)
-						  :ri 0
-						  :ci 2)))
-		    ;;set hidden_stairs parameters
-		    (setf (object-name hidden_stairs) "floor_7_2")
-		    (setf (entrance-next-level hidden_stairs) "level_8.map")
-		    (setf (entrance-next-player-pos hidden_stairs) #(0 32))
-		    (setf (entrance-connected-door-id hidden_stairs) "floor_8_1")
-		    ;;add the stairs to scene afterwards
-		    (add-obj-to-scene sc "middle" hidden_stairs)))))))
+		  (when (not (-> self 'interaction_occured))
+		    (let ((hidden_stairs (make-tile :tile-sheet-path "tile_sheet.png"
+						    :tile-size 32
+						    :tile-class 'entrance
+						    :x (* 20 32)
+						    :y (* 10 32)
+						    :ri 0
+						    :ci 2)))
+		      ;;set hidden_stairs parameters
+		      (setf (object-name hidden_stairs) "floor_7_2")
+		      (setf (entrance-next-level hidden_stairs) "level_8.map")
+		      (setf (entrance-next-player-pos hidden_stairs) #(0 32))
+		      (setf (entrance-connected-door-id hidden_stairs) "floor_8_1")
+		      ;;play sound effect
+		      (play-sound-effect "hidden_door_open.wav")
+		      ;;add the stairs to scene afterwards
+		      (add-obj-to-scene sc "middle" hidden_stairs)
+		      (<- self 'interaction_occured t)
+		      (setf (interactible-pages self) (list (list "You already pressed the button"))))))))))
 (define-level *level_8_scene* "level_8.map")
 ;;(sb-sprof:start-profiling :mode :alloc)
 (main "Prime Garden" *intro-scene* *camera* *width* *height*)
