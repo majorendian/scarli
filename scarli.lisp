@@ -894,6 +894,7 @@
 
 ;NOTE: this function still needs more proper testing
 (defun rec-update-and-draw-children (l dst_surf dt cam)
+  (declare (optimize (speed 3)))
   (let ((child (first l)))
     (if child
         (progn
@@ -920,6 +921,7 @@
 
 
 (defun update-and-draw-scene (dst_surf sc dt cam)
+  (declare (optimize (speed 3)))
   (loop for a_layer in (scene-layers sc)
         do (loop for obj in (sort (layer-objects a_layer) 
                                   (lambda (a b)
@@ -1109,7 +1111,7 @@
 		   (sdl2:free-surface sec_surf)
 					;update fps counter every second along with last ticks
 		   (when (>= (- current_ticks last_ticks) 1000)
-		     ;;(format t "FPS:~S~%" fps)
+		     (format t "FPS:~S~%" fps)
 		     (setf fps 0)
 		     (setf last_ticks (sdl2:get-ticks))
 		     )))
