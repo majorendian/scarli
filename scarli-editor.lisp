@@ -23,7 +23,8 @@
 (defparameter *current-layer* (layer-name (nth 0 (scene-layers *scene*))))
 (defparameter *current-tile-class* 'tile)
 (defparameter *available-tile-classes* 
-  (list 'tile 'solid-tile 'interactible 'interactible-animated 'pushable-block 'entrance 'npc))
+  (list 'tile 'solid-tile 'interactible 'interactible-animated 'pushable-block 'entrance 'npc
+	'sliding-block))
 
 (defun get-save-tile-format (tile)
   (cond

@@ -28,7 +28,7 @@
 							 (when (and (not pressed) (sdl2:scancode= scancode :scancode-space))
 							   (if (not (-> self 'double_input))
 							       (progn
-								 (switch-scene "level_7.map" (lambda () (play-music "cool_nescaline.mp3") ))
+								 (switch-scene "level_8.map" (lambda () (play-music "cool_nescaline.mp3") ))
 								 (remove-input-handler self))
 							       (<- self 'double_input nil))))
 						:ready (lambda (self)
@@ -121,6 +121,8 @@
 		      (<- self 'interaction_occured t)
 		      (setf (interactible-pages self) (list (list "You already pressed the button"))))))))))
 (define-level *level_8_scene* "level_8.map")
+(setf (scene-width *level_8_scene*) 1024)
+(setf (scene-height *level_8_scene*) 768)
 ;;(sb-sprof:start-profiling :mode :alloc)
 (main "Prime Garden" *intro-scene* *camera* *width* *height*)
 ;;(sb-sprof:stop-profiling)

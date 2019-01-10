@@ -9,6 +9,7 @@
 	   interactible-animated
 	   npc
 	   pushable-block
+	   sliding-block
            entrance
            entrance-id
            entrance-connected-door-id
@@ -143,6 +144,47 @@
   (setf (rect-y (object-collision-rect self)) (object-y self))
   (when (not (object-is-colliding self))
     (<- self 'dir #(0 0))))
+
+(defclass sliding-block (solid-tile)
+  ())
+
+(defmethod object-ready ((self sliding-block))
+  (<- self 'dir #(0 0))
+  (setf (object-movable self) t))
+
+(defmethod object-on-collide ((self sliding-block) (collider object))
+  (if (string= (object-name collider) "player")
+      ;;collide with player
+      (basic-collision self collider
+		       :top (lambda (self collider)
+			      (<- self 'dir #(0 1)))
+		       :bottom (lambda (self collider)
+				 (<- self 'dir #(0 -1)))
+		       :left (lambda (self collider)
+			       (<- self 'dir #(1 0)))
+		       :right (lambda (self collider)
+				(<- self 'dir #(-1 0))))
+      ;;collide with everything else
+      (basic-collision self collider 
+                       :top (lambda (self collider)
+                              (setf (object-y self) (+ (object-y collider) (object-height collider)))
+			      (<- self 'dir #(0 0)))
+                       :bottom (lambda (self collider)
+                                 (setf (object-y self) (- (object-y collider) (object-height collider)))
+				 (<- self 'dir #(0 0)))
+                       :left (lambda (self collider)
+			       (format t "collision on left~%")
+                               (setf (object-x self) (+ (object-x collider) (object-width collider)))
+			       (<- self 'dir #(0 0)))
+                       :right (lambda (self collider)
+                                (setf (object-x self) (- (object-x collider) (object-width collider)))
+				(<- self 'dir #(0 0)))
+                       ) ))
+
+(defmethod object-update ((self sliding-block) (dt float))
+  (setf (rect-x (object-collision-rect self)) (object-x self))
+  (setf (rect-y (object-collision-rect self)) (object-y self))
+  (object-move self (* 50 (aref (-> self 'dir) 0)) (* 50 (aref (-> self 'dir) 1)) dt))
 
 (defclass entrance (tile)
   ((connected-door-id :accessor entrance-connected-door-id :initarg :connected-door-id :initform nil)
