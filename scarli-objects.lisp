@@ -173,7 +173,6 @@
                                  (setf (object-y self) (- (object-y collider) (object-height collider)))
 				 (<- self 'dir #(0 0)))
                        :left (lambda (self collider)
-			       (format t "collision on left~%")
                                (setf (object-x self) (+ (object-x collider) (object-width collider)))
 			       (<- self 'dir #(0 0)))
                        :right (lambda (self collider)
@@ -184,7 +183,7 @@
 (defmethod object-update ((self sliding-block) (dt float))
   (setf (rect-x (object-collision-rect self)) (object-x self))
   (setf (rect-y (object-collision-rect self)) (object-y self))
-  (object-move self (* 50 (aref (-> self 'dir) 0)) (* 50 (aref (-> self 'dir) 1)) dt))
+  (object-move self (* 20 (aref (-> self 'dir) 0)) (* 20 (aref (-> self 'dir) 1)) dt))
 
 (defclass entrance (tile)
   ((connected-door-id :accessor entrance-connected-door-id :initarg :connected-door-id :initform nil)
